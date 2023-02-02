@@ -55,17 +55,16 @@ def receive_uniprot_data(job_id):
 # 1. Defining variables--------------------------------------------------------------------------------------------------
 
 # Defining file paths
-processed_af2_destress_data_path = "data/processed_data/processed_af2_destress_data.csv"
+uniprot_id_list_path = "data/raw_data/uniprot/uniprot_id_list.csv"
 data_output_path = "data/raw_data/uniprot/"
 
 # 2. Querying the uniprot data and starting jobs--------------------------------------------------------------------------
 
-# Reading in processed af2 destress data
-processed_af2_destress_data = pd.read_csv(processed_af2_destress_data_path)
+# # Reading in uniprot_id_list
+# uniprot_id_list = pd.read_csv(uniprot_id_list_path)
 
-# Extracting uniprot ids
-uni_prot_ids_list = list(processed_af2_destress_data["uniprot_id"].unique())
-print(len(uni_prot_ids_list))
+# # Extracting uniprot ids
+# uni_prot_ids_list = list(uniprot_id_list["uniprot_id"].unique())
 
 # # Splitting the uniprot ids into batches of 100,000 
 # # (this is the max that the uniprot API can handle)
@@ -86,17 +85,17 @@ print(len(uni_prot_ids_list))
 
 # 3. Downloading results from uniprot for a set of job ids------------------------------------------------------------------
 
-# # Read in job ids csv file
-# job_ids_df = pd.read_csv(data_output_path + "job_ids_df.csv")
-# job_ids_list = job_ids_df["job_id"].to_list()
+# Read in job ids csv file
+job_ids_df = pd.read_csv(data_output_path + "job_ids_df.csv")
+job_ids_list = job_ids_df["job_id"].to_list()
 
-# # Receiving results for each of the job ids
-# for job_id in job_ids_list:
-#     results = receive_uniprot_data(job_id=job_id)
+# Receiving results for each of the job ids
+for job_id in job_ids_list:
+    results = receive_uniprot_data(job_id=job_id)
 
-#     # Saving results as json file
-#     with open(data_output_path + job_id + '.json', 'w') as outfile:
-#         outfile.write(results)
+    # Saving results as json file
+    with open(data_output_path + job_id + '.json', 'w') as outfile:
+        outfile.write(results)
 
     
 
