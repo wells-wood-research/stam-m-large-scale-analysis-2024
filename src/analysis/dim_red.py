@@ -43,11 +43,11 @@ processed_destress_data = pd.read_csv(processed_destress_data_path)
 
 # Extracting columns as variables before scaling
 design_name = processed_destress_data["design_name"]
-# uniprot_id = processed_destress_data["uniprot_id"]
+uniprot_id = processed_destress_data["uniprot_id"]
 pdb_or_af2 = processed_destress_data["pdb_or_af2"]
 dssp_bin = processed_destress_data["dssp_bin"]
 isoelectric_point_bin = processed_destress_data["isoelectric_point"]
-# organism_scientific_name = processed_destress_data["organism_scientific_name"]
+organism_scientific_name = processed_destress_data["organism_scientific_name"]
 
 # Dropping columns that are not needed anymore
 processed_destress_data.drop(
@@ -56,8 +56,8 @@ processed_destress_data.drop(
         "file_name",
         "pdb_or_af2",
         "dssp_bin",
-        # "organism_scientific_name",
-        # "uniprot_id",
+        "organism_scientific_name",
+        "uniprot_id",
     ],
     axis=1,
     inplace=True,
@@ -393,7 +393,7 @@ scaled_df_arr = scaled_df.to_numpy()
 np.random.seed(42)
 
 # Creating a torch tensor for the data set
-scaled_df_torch = torch.tensor(scaled_df.sample(n=20000).values, dtype=torch.get_default_dtype())
+scaled_df_torch = torch.tensor(scaled_df.sample(n=10000).values, dtype=torch.get_default_dtype())
 
 # Transposing the shape
 y = scaled_df_torch.t()
@@ -411,6 +411,10 @@ X = Parameter(X_prior_mean.clone())
 # The initial values for Xu are sampled randomly from X_prior_mean
 Xu = stats.resample(X_prior_mean.clone(), 32)
 gplvm = gp.models.SparseGPRegression(X, y, kernel, Xu, noise=torch.tensor(0.01), jitter=1e-5)
+
+# likelihood = pyro.contrib.gp.likelihoods.likelihood.Likelihood
+
+# gplvm = gp.models.VariationalSparseGP(X, y, likelihood, Xu, kernel, jitter=1e-5)
 
 # Using `.to_event()` to tell Pyro that the prior distribution for X has no batch_shape
 gplvm.X = pyro.nn.PyroSample(dist.Normal(X_prior_mean, 0.1).to_event())
@@ -433,8 +437,8 @@ X = pd.concat(
         pdb_or_af2,
         dssp_bin,
         isoelectric_point_bin,
+        organism_scientific_name,
         X,
-        # organism_scientific_name,
         ],
     axis=1,
 )
@@ -487,5 +491,20 @@ fig.update_traces(
     selector=dict(mode="markers"),
 )
 fig.write_html(dim_red_analysis_path + "gplvm_isoelectric_point.html")
+
+fig = px.scatter(
+    X,
+    x="gplvm_dim_0",
+    y="gplvm_dim_1",
+    color="organism_scientific_name",
+    color_discrete_sequence=px.colors.qualitative.G10,
+    hover_data=["design_name", "gplvm_dim_0", "gplvm_dim_1"],
+    opacity=0.6,
+)
+fig.update_traces(
+    marker=dict(size=20, line=dict(width=2)),
+    selector=dict(mode="markers"),
+)
+fig.write_html(dim_red_analysis_path + "gplvm_organism.html")
 
 

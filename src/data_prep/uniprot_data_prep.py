@@ -70,4 +70,8 @@ for json_file_path in json_file_path_list:
 # Creating a dataframe with all of this data
 uniprot_data_df = pd.DataFrame(list(zip(primary_accession_list, uniProtkbId_list, organism_scientific_name_list, protein_name_list, gene_name_list)), columns=["primary_accession", "uniProtkbId", "organism_scientific_name", "protein_name", "gene_name"])
 uniprot_data_df["gene_name"] = np.where(uniprot_data_df["gene_name"] == "None", None, uniprot_data_df["gene_name"])
+uniprot_data_df = uniprot_data_df.drop_duplicates()
 uniprot_data_df.to_csv(data_output_path + "uniprot_data_df.csv", index=False)
+
+# uniprot_data_df_dupes = uniprot_data_df[uniprot_data_df.duplicated()]
+# uniprot_data_df_dupes.to_csv(data_output_path + "uniprot_data_df_dupes.csv", index=False)
