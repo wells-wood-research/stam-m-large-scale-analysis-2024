@@ -171,25 +171,25 @@ processed_destress_data.drop(
 
 print(processed_destress_data.columns.to_list())
 
-# Defining a column which extracts the uniprot id from the design_name column
-processed_destress_data["uniprot_id"] = processed_af2_destress_data["design_name"].str.split("-").str[1]
+# # Defining a column which extracts the uniprot id from the design_name column
+# processed_destress_data["uniprot_id"] = processed_af2_destress_data["design_name"].str.split("-").str[1]
 
-# Joining on processed uniprot data by uniprot id
-processed_destress_data = processed_destress_data.merge(processed_uniprot_data, how="left", left_on="uniprot_id", right_on = "primary_accession")
+# # Joining on processed uniprot data by uniprot id
+# processed_destress_data = processed_destress_data.merge(processed_uniprot_data, how="left", left_on="uniprot_id", right_on = "primary_accession")
 
-# Removing columns 
-processed_destress_data.drop(
-    [
-    "primary_accession",
-    "uniProtkbId",
-    "protein_name",
-    "gene_name",
-    ],
-    axis=1,
-    inplace=True,
-)
+# # Removing columns 
+# processed_destress_data.drop(
+#     [
+#     "primary_accession",
+#     "uniProtkbId",
+#     "protein_name",
+#     "gene_name",
+#     ],
+#     axis=1,
+#     inplace=True,
+# )
 
-processed_destress_data["organism_scientific_name"] = np.where(processed_destress_data["pdb_or_af2"] == "PDB", "PDB", processed_destress_data["organism_scientific_name"])
+# processed_destress_data["organism_scientific_name"] = np.where(processed_destress_data["pdb_or_af2"] == "PDB", "PDB", processed_destress_data["organism_scientific_name"])
 
 # Removing any rows that have NAs in them
 processed_destress_data = processed_destress_data.dropna(axis=0).reset_index(drop=True)
