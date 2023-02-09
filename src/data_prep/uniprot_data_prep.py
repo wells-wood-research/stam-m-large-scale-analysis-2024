@@ -10,12 +10,18 @@ from pathlib import Path
 uniprot_raw_data_path = "data/raw_data/uniprot/"
 data_output_path = "data/processed_data/"
 
-# Initialising lists
-primary_accession_list = []
-uniProtkbId_list = []
-organism_scientific_name_list = []
-protein_name_list = []
-gene_name_list = []
+# Creating a data frame to insert uniprot data into
+uniprot_data_df = pd.DataFrame(columns=["primary_accession", 
+                                        "uniProtkbId", 
+                                        "organism_scientific_name", 
+                                        "protein_name"])
+
+# Creating a data frame to insert go data into
+go_data_df = pd.DataFrame(columns=["primary_accession", 
+                                   "go_id", 
+                                   "go_col", 
+                                   "go_term"])
+
 
 # 2. Reading json files--------------------------------------------------------------------------------------------------
 
@@ -41,37 +47,62 @@ for json_file_path in json_file_path_list:
             
             # Extracting the results for a specific uniprot id
             uniprot_results_row = uniprot_results[n]["to"]
-            
+
             # Appending primary accession, uniProtkbId and organism scientific name
-            primary_accession_list.append(uniprot_results_row['primaryAccession'])
-            uniProtkbId_list.append(uniprot_results_row['uniProtkbId'])
-            organism_scientific_name_list.append(uniprot_results_row['organism']['scientificName'])
+            primary_accession = uniprot_results_row['primaryAccession']
+            uniProtkbId = uniprot_results_row['uniProtkbId']
+            organism_scientific_name = uniprot_results_row['organism']['scientificName']
             
             # Extracting protein description
             uniprot_results_row_proteindesc = uniprot_results_row['proteinDescription']
             
             # If there is no recommended name then take the submission name
             if "recommendedName" in uniprot_results_row_proteindesc.keys():
-                protein_name_list.append(uniprot_results_row_proteindesc["recommendedName"]["fullName"]["value"])
+                protein_name = uniprot_results_row_proteindesc["recommendedName"]["fullName"]["value"]
             elif "submissionNames" in uniprot_results_row_proteindesc.keys():
-                protein_name_list.append(uniprot_results_row_proteindesc["submissionNames"][0]['fullName']["value"])
+                protein_name = uniprot_results_row_proteindesc["submissionNames"][0]['fullName']["value"]
 
 
-            # Extract gene name if there is one and set to None if not
-            if "genes" in uniprot_results_row.keys():
-                # print(uniprot_results_row["genes"][0].keys())
-                if "geneName" in uniprot_results_row["genes"][0].keys():
-                    gene_name_list.append(uniprot_results_row["genes"][0]["geneName"]["value"])
-                else:
-                    gene_name_list.append("None")
-            else:
-                gene_name_list.append("None")
+            # # Extract gene name if there is one and set to None if not
+            # if "genes" in uniprot_results_row.keys():
+            #     # print(uniprot_results_row["genes"][0].keys())
+            #     if "geneName" in uniprot_results_row["genes"][0].keys():
+            #         gene_name_list.append(uniprot_results_row["genes"][0]["geneName"]["value"])
+            #     else:
+            #         gene_name_list.append("None")
+            # else:
+            #     gene_name_list.append("None")
 
-# Creating a dataframe with all of this data
-uniprot_data_df = pd.DataFrame(list(zip(primary_accession_list, uniProtkbId_list, organism_scientific_name_list, protein_name_list, gene_name_list)), columns=["primary_accession", "uniProtkbId", "organism_scientific_name", "protein_name", "gene_name"])
-uniprot_data_df["gene_name"] = np.where(uniprot_data_df["gene_name"] == "None", None, uniprot_data_df["gene_name"])
+
+            # Inserting row into uniprot df
+            uniprot_data_df = uniprot_data_df.append({'primary_accession': primary_accession,
+                                                      'uniProtkbId': uniProtkbId,
+                                                      'organism_scientific_name': organism_scientific_name,
+                                                      'protein_name': protein_name},
+                                                      ignore_index=True)
+
+            # Extract GO terms
+            uniprot_results_databases = uniprot_results[n]['to']['uniProtKBCrossReferences']
+            for i in range(0, len(uniprot_results_databases)):
+                if uniprot_results_databases[i]['database'] == 'GO':
+
+                    go_id = uniprot_results_databases[i]['id']
+                    go_col = uniprot_results_databases[i]['properties'][0]['key']
+                    go_term = uniprot_results_databases[i]['properties'][0]['value']
+
+                    # Inserting row into go df
+                    go_data_df = uniprot_data_df.append({'primary_accession': primary_accession,
+                                                         'go_id': go_id,
+                                                         'go_col': go_col,
+                                                         'go_term': go_term},
+                                                         ignore_index=True)
+
+
 uniprot_data_df = uniprot_data_df.drop_duplicates()
 uniprot_data_df.to_csv(data_output_path + "uniprot_data_df.csv", index=False)
+
+go_data_df = go_data_df.drop_duplicates()
+go_data_df.to_csv(data_output_path + "go_data_df.csv", index=False)
 
 # uniprot_data_df_dupes = uniprot_data_df[uniprot_data_df.duplicated()]
 # uniprot_data_df_dupes.to_csv(data_output_path + "uniprot_data_df_dupes.csv", index=False)
