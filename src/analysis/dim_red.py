@@ -43,11 +43,15 @@ processed_destress_data = pd.read_csv(processed_destress_data_path)
 
 # Extracting columns as variables before scaling
 design_name = processed_destress_data["design_name"]
-uniprot_id = processed_destress_data["uniprot_id"]
+# uniprot_id = processed_destress_data["uniprot_id"]
 pdb_or_af2 = processed_destress_data["pdb_or_af2"]
 dssp_bin = processed_destress_data["dssp_bin"]
 isoelectric_point_bin = processed_destress_data["isoelectric_point"]
-organism_scientific_name = processed_destress_data["organism_scientific_name"]
+# organism_scientific_name = processed_destress_data["organism_scientific_name"]
+rosetta_total = processed_destress_data["rosetta_total"]
+packing_density = processed_destress_data["packing_density"]
+hydrophobic_fitness = processed_destress_data["hydrophobic_fitness"]
+aggrescan3d_avg_value = processed_destress_data["aggrescan3d_avg_value"]
 
 # Dropping columns that are not needed anymore
 processed_destress_data.drop(
@@ -56,8 +60,13 @@ processed_destress_data.drop(
         "file_name",
         "pdb_or_af2",
         "dssp_bin",
-        "organism_scientific_name",
-        "uniprot_id",
+        # "rosetta_total",
+        # "packing_density",
+        # "hydrophobic_fitness",
+        # "aggrescan3d_avg_value",
+        # "organism_scientific_name",
+        # "uniprot_id",
+        # "protein_name",
     ],
     axis=1,
     inplace=True,
@@ -164,8 +173,12 @@ scaled_df_arr = scaled_df.to_numpy()
 #         pdb_or_af2,
 #         dssp_bin,
 #         isoelectric_point_bin,
+#         rosetta_total,
+#         packing_density,
+#         hydrophobic_fitness,
+#         aggrescan3d_avg_value,
+#         # organism_scientific_name,
 #         pca_transformed_df,
-#         organism_scientific_name,
 #         ],
 #     axis=1,
 # )
@@ -193,9 +206,8 @@ scaled_df_arr = scaled_df.to_numpy()
 #     x="pca_dim0",
 #     y="pca_dim1",
 #     # z="pca_dim2",
-#     color="organism_scientific_name",
+#     color="pdb_or_af2",
 #     color_discrete_sequence=px.colors.qualitative.G10,
-#     symbol="pdb_or_af2",
 #     hover_data=["design_name", "pca_dim0", "pca_dim1", "pca_dim2"],
 #     opacity=0.6,
 # )
@@ -203,13 +215,126 @@ scaled_df_arr = scaled_df.to_numpy()
 #     marker=dict(size=20, line=dict(width=2)),
 #     selector=dict(mode="markers"),
 # )
-# fig.write_html("analysis/pdb_vs_af2_pca_embedding.html")
+# fig.write_html("analysis/pca_embedding_pdb_vs_af2.html")
+
+# fig = px.scatter(
+#     pca_transformed_df,
+#     x="pca_dim0",
+#     y="pca_dim1",
+#     # z="pca_dim2",
+#     color="dssp_bin",
+#     color_discrete_sequence=px.colors.qualitative.G10,
+#     hover_data=["design_name", "pca_dim0", "pca_dim1", "pca_dim2"],
+#     opacity=0.6,
+# )
+# fig.update_traces(
+#     marker=dict(size=20, line=dict(width=2)),
+#     selector=dict(mode="markers"),
+# )
+# fig.write_html("analysis/pca_embedding_dssp_bin.html")
+
+# fig = px.scatter(
+#     pca_transformed_df,
+#     x="pca_dim0",
+#     y="pca_dim1",
+#     # z="pca_dim2",
+#     color="isoelectric_point",
+#     color_discrete_sequence=px.colors.qualitative.G10,
+#     hover_data=["design_name", "pca_dim0", "pca_dim1", "pca_dim2"],
+#     opacity=0.6,
+# )
+# fig.update_traces(
+#     marker=dict(size=20, line=dict(width=2)),
+#     selector=dict(mode="markers"),
+# )
+# fig.write_html("analysis/pca_embedding_isoelectric_point.html")
+
+
+# # fig = px.scatter(
+# #     pca_transformed_df,
+# #     x="pca_dim0",
+# #     y="pca_dim1",
+# #     # z="pca_dim2",
+# #     color="organism_scientific_name",
+# #     color_discrete_sequence=px.colors.qualitative.G10,
+# #     hover_data=["design_name", "pca_dim0", "pca_dim1", "pca_dim2"],
+# #     opacity=0.6,
+# # )
+# # fig.update_traces(
+# #     marker=dict(size=20, line=dict(width=2)),
+# #     selector=dict(mode="markers"),
+# # )
+# # fig.write_html("analysis/pca_embedding_organism.html")
+
+# fig = px.scatter(
+#     pca_transformed_df,
+#     x="pca_dim0",
+#     y="pca_dim1",
+#     # z="pca_dim2",
+#     color="rosetta_total",
+#     color_discrete_sequence=px.colors.qualitative.G10,
+#     hover_data=["design_name", "pca_dim0", "pca_dim1", "pca_dim2"],
+#     opacity=0.6,
+# )
+# fig.update_traces(
+#     marker=dict(size=20, line=dict(width=2)),
+#     selector=dict(mode="markers"),
+# )
+# fig.write_html("analysis/pca_embedding_rosetta_total.html")
+
+# fig = px.scatter(
+#     pca_transformed_df,
+#     x="pca_dim0",
+#     y="pca_dim1",
+#     # z="pca_dim2",
+#     color="packing_density",
+#     color_discrete_sequence=px.colors.qualitative.G10,
+#     hover_data=["design_name", "pca_dim0", "pca_dim1", "pca_dim2"],
+#     opacity=0.6,
+# )
+# fig.update_traces(
+#     marker=dict(size=20, line=dict(width=2)),
+#     selector=dict(mode="markers"),
+# )
+# fig.write_html("analysis/pca_embedding_packing_density.html")
+
+# fig = px.scatter(
+#     pca_transformed_df,
+#     x="pca_dim0",
+#     y="pca_dim1",
+#     # z="pca_dim2",
+#     color="hydrophobic_fitness",
+#     color_discrete_sequence=px.colors.qualitative.G10,
+#     hover_data=["design_name", "pca_dim0", "pca_dim1", "pca_dim2"],
+#     opacity=0.6,
+# )
+# fig.update_traces(
+#     marker=dict(size=20, line=dict(width=2)),
+#     selector=dict(mode="markers"),
+# )
+# fig.write_html("analysis/pca_embedding_hydrophobic_fitness.html")
+
+# fig = px.scatter(
+#     pca_transformed_df,
+#     x="pca_dim0",
+#     y="pca_dim1",
+#     # z="pca_dim2",
+#     color="aggrescan3d_avg_value",
+#     color_discrete_sequence=px.colors.qualitative.G10,
+#     hover_data=["design_name", "pca_dim0", "pca_dim1", "pca_dim2"],
+#     opacity=0.6,
+# )
+# fig.update_traces(
+#     marker=dict(size=20, line=dict(width=2)),
+#     selector=dict(mode="markers"),
+# )
+# fig.write_html("analysis/pca_embedding_aggrescan3d_avg_value.html")
 # fig.show()
 
 # fig, ((ax1, ax2), (ax3, ax4), (ax5, ax6), (ax7, ax8), (ax9, ax10), (ax11, ax12)) = plt.subplots(
 #     6, 2, figsize=(4, 6), sharey=True, sharex=True
 # )
-# # fig.suptitle("Histograms of the principal components for all PDB and AF2 structures")
+# fig.suptitle("Histograms of the principal components for all PDB and AF2 structures")
 
 # ax1.hist(
 #     pca_transformed_df[pca_transformed_df["dssp_bin"] == "PDB"]["pca_dim0"],
@@ -393,7 +518,7 @@ scaled_df_arr = scaled_df.to_numpy()
 np.random.seed(42)
 
 # Creating a torch tensor for the data set
-scaled_df_torch = torch.tensor(scaled_df.sample(n=10000).values, dtype=torch.get_default_dtype())
+scaled_df_torch = torch.tensor(scaled_df.sample(n=1000).values, dtype=torch.get_default_dtype())
 
 # Transposing the shape
 y = scaled_df_torch.t()
@@ -437,7 +562,11 @@ X = pd.concat(
         pdb_or_af2,
         dssp_bin,
         isoelectric_point_bin,
-        organism_scientific_name,
+        rosetta_total,
+        packing_density,
+        hydrophobic_fitness,
+        aggrescan3d_avg_value,
+        # organism_scientific_name,
         X,
         ],
     axis=1,
@@ -496,7 +625,7 @@ fig = px.scatter(
     X,
     x="gplvm_dim_0",
     y="gplvm_dim_1",
-    color="organism_scientific_name",
+    color="packing_density",
     color_discrete_sequence=px.colors.qualitative.G10,
     hover_data=["design_name", "gplvm_dim_0", "gplvm_dim_1"],
     opacity=0.6,
@@ -505,6 +634,66 @@ fig.update_traces(
     marker=dict(size=20, line=dict(width=2)),
     selector=dict(mode="markers"),
 )
-fig.write_html(dim_red_analysis_path + "gplvm_organism.html")
+fig.write_html(dim_red_analysis_path + "gplvm_packing_density.html")
+
+fig = px.scatter(
+    X,
+    x="gplvm_dim_0",
+    y="gplvm_dim_1",
+    color="hydrophobic_fitness",
+    color_discrete_sequence=px.colors.qualitative.G10,
+    hover_data=["design_name", "gplvm_dim_0", "gplvm_dim_1"],
+    opacity=0.6,
+)
+fig.update_traces(
+    marker=dict(size=20, line=dict(width=2)),
+    selector=dict(mode="markers"),
+)
+fig.write_html(dim_red_analysis_path + "gplvm_hydrophobic_fitness.html")
+
+fig = px.scatter(
+    X,
+    x="gplvm_dim_0",
+    y="gplvm_dim_1",
+    color="aggrescan3d_avg_value",
+    color_discrete_sequence=px.colors.qualitative.G10,
+    hover_data=["design_name", "gplvm_dim_0", "gplvm_dim_1"],
+    opacity=0.6,
+)
+fig.update_traces(
+    marker=dict(size=20, line=dict(width=2)),
+    selector=dict(mode="markers"),
+)
+fig.write_html(dim_red_analysis_path + "gplvm_aggrescan3d_avg_value.html")
+
+fig = px.scatter(
+    X,
+    x="gplvm_dim_0",
+    y="gplvm_dim_1",
+    color="rosetta_total",
+    color_discrete_sequence=px.colors.qualitative.G10,
+    hover_data=["design_name", "gplvm_dim_0", "gplvm_dim_1"],
+    opacity=0.6,
+)
+fig.update_traces(
+    marker=dict(size=20, line=dict(width=2)),
+    selector=dict(mode="markers"),
+)
+fig.write_html(dim_red_analysis_path + "gplvm_rosetta_total.html")
+
+# fig = px.scatter(
+#     X,
+#     x="gplvm_dim_0",
+#     y="gplvm_dim_1",
+#     color="organism_scientific_name",
+#     color_discrete_sequence=px.colors.qualitative.G10,
+#     hover_data=["design_name", "gplvm_dim_0", "gplvm_dim_1"],
+#     opacity=0.6,
+# )
+# fig.update_traces(
+#     marker=dict(size=20, line=dict(width=2)),
+#     selector=dict(mode="markers"),
+# )
+# fig.write_html(dim_red_analysis_path + "gplvm_organism.html")
 
 
