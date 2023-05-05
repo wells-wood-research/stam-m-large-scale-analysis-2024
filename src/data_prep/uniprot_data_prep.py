@@ -16,11 +16,11 @@ uniprot_data_df = pd.DataFrame(columns=["primary_accession",
                                         "organism_scientific_name", 
                                         "protein_name"])
 
-# Creating a data frame to insert go data into
-go_data_df = pd.DataFrame(columns=["primary_accession", 
-                                   "go_id", 
-                                   "go_col", 
-                                   "go_term"])
+# # Creating a data frame to insert go data into
+# go_data_df = pd.DataFrame(columns=["primary_accession", 
+#                                    "go_id", 
+#                                    "go_col", 
+#                                    "go_term"])
 
 
 # 2. Reading json files--------------------------------------------------------------------------------------------------
@@ -81,28 +81,28 @@ for json_file_path in json_file_path_list:
                                                       'protein_name': protein_name},
                                                       ignore_index=True)
 
-            # Extract GO terms
-            uniprot_results_databases = uniprot_results[n]['to']['uniProtKBCrossReferences']
-            for i in range(0, len(uniprot_results_databases)):
-                if uniprot_results_databases[i]['database'] == 'GO':
+            # # Extract GO terms
+            # uniprot_results_databases = uniprot_results[n]['to']['uniProtKBCrossReferences']
+            # for i in range(0, len(uniprot_results_databases)):
+            #     if uniprot_results_databases[i]['database'] == 'GO':
 
-                    go_id = uniprot_results_databases[i]['id']
-                    go_col = uniprot_results_databases[i]['properties'][0]['key']
-                    go_term = uniprot_results_databases[i]['properties'][0]['value']
+            #         go_id = uniprot_results_databases[i]['id']
+            #         go_col = uniprot_results_databases[i]['properties'][0]['key']
+            #         go_term = uniprot_results_databases[i]['properties'][0]['value']
 
-                    # Inserting row into go df
-                    go_data_df = uniprot_data_df.append({'primary_accession': primary_accession,
-                                                         'go_id': go_id,
-                                                         'go_col': go_col,
-                                                         'go_term': go_term},
-                                                         ignore_index=True)
+            #         # Inserting row into go df
+            #         go_data_df = uniprot_data_df.append({'primary_accession': primary_accession,
+            #                                              'go_id': go_id,
+            #                                              'go_col': go_col,
+            #                                              'go_term': go_term},
+            #                                              ignore_index=True)
 
 
 uniprot_data_df = uniprot_data_df.drop_duplicates()
 uniprot_data_df.to_csv(data_output_path + "uniprot_data_df.csv", index=False)
 
-go_data_df = go_data_df.drop_duplicates()
-go_data_df.to_csv(data_output_path + "go_data_df.csv", index=False)
+# go_data_df = go_data_df.drop_duplicates()
+# go_data_df.to_csv(data_output_path + "go_data_df.csv", index=False)
 
 # uniprot_data_df_dupes = uniprot_data_df[uniprot_data_df.duplicated()]
 # uniprot_data_df_dupes.to_csv(data_output_path + "uniprot_data_df_dupes.csv", index=False)

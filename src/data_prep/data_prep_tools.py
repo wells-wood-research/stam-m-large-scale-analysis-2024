@@ -21,10 +21,10 @@ def remove_missing_val_features(data, output_path, threshold):
     return new_data, features_to_remove
 
 # Defining a function which saves csv files of the labels 
-def save_destress_labels(data, labels, output_path):
+def save_destress_labels(data, labels, output_path, file_path):
 
     data_filt = data[labels]
-    data_filt.to_csv(output_path + "labels.csv", index=False)
+    data_filt.to_csv(output_path + file_path + ".csv", index=False)
 
 # Defining a function to compute mean and std of features
 def features_mean_std(data, output_path, id):

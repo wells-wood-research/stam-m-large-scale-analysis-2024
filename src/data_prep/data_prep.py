@@ -1,8 +1,11 @@
 # 0. Loading in packages and defining custom functions--------------------------------------------------
 import numpy as np
 import pandas as pd
-from sklearn.preprocessing import MinMaxScaler
+from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from data_prep_tools import *
+import matplotlib.pyplot as plt
+import seaborn as sns
+
 
 # 1. Defining variables---------------------------------------------------------------------------------
 
@@ -44,7 +47,8 @@ energy_field_list = [
 
 # Defining the cut off for proportion of missing values 
 # (if the feature has more than this then it will be removed)
-missing_val_threshold = 0.05
+# missing_val_threshold = 0.05
+missing_val_threshold = 0.2
 
 # Defining a low standard deviation threshold
 # (if features have less than this threshold then they are removed)
@@ -79,6 +83,13 @@ drop_cols = ["ss_prop_alpha_helix",
              "num_residues",
              ]
 
+# drop_cols = ["mass",
+#              "num_residues",
+#              ]
+
+# Defining scaling method
+scaling_method = "minmax"
+
 # 2. Reading in data sets-------------------------------------------------------------------------------
 
 # Reading in raw AF2 DE-STRESS data
@@ -99,8 +110,8 @@ af2_destress_data["pdb_or_af2"] = "AF2"
 pdb_destress_data["pdb_or_af2"] = "PDB"
 
 # Joining af2 and pdb destress data sets
-destress_data = pd.concat([af2_destress_data, pdb_destress_data]).reset_index(drop=True)
-# destress_data = pdb_destress_data
+# destress_data = pd.concat([af2_destress_data, pdb_destress_data]).reset_index(drop=True)
+destress_data = pdb_destress_data
 
 # Removing features that have missing value prop greater than threshold
 destress_data, dropped_cols_miss_vals = remove_missing_val_features(data=destress_data, output_path=data_exploration_output_path, threshold=missing_val_threshold)
@@ -131,6 +142,10 @@ num_af2_structures = destress_data[destress_data["pdb_or_af2"] == "AF2"].reset_i
 
 print("There are " + str(num_pdb_structures) + " PDB structures and " + str(num_af2_structures) + " AF2 structural models.")
 
+
+print(destress_data.columns.to_list())
+print(dropped_cols_miss_vals)
+
 # 4. Creating new fields and saving labels--------------------------------------------------------------------------------
 
 # Adding a new field to create a dssp bin
@@ -150,6 +165,20 @@ destress_data["dssp_bin"] = np.select(
     default="Mixed",
 )
 
+# # Adding a new field to create a dssp bin
+# destress_data["isoelectric_point_bin"] = np.select(
+#     [
+#         destress_data["isoelectric_point"].lt(6),
+#         destress_data["isoelectric_point"].ge(6) and destress_data["isoelectric_point"].le(8),
+#         destress_data[destress_data]
+#         destress_data["isoelectric_point"].gt(6),
+#     ],
+#     ["1-5", "6-8", "9-13"],
+#     default="Other",
+# )
+
+
+
 # Normalising energy field values by the number of residues
 destress_data.loc[:, energy_field_list,] = destress_data.loc[
     :,
@@ -157,7 +186,7 @@ destress_data.loc[:, energy_field_list,] = destress_data.loc[
 ].div(destress_data["num_residues"], axis=0)
 
 # Saving labels
-save_destress_labels(data=destress_data, labels=dim_red_labels, output_path=data_output_path)
+save_destress_labels(data=destress_data, labels=dim_red_labels, output_path=data_output_path, file_path="labels_pdb")
 
 # 5. Scaling features--------------------------------------------------------------
 
@@ -176,13 +205,32 @@ dropped_cols_non_num = set(destress_columns_full) - set(destress_columns_num)
 # Calculating mean and std of features
 features_mean_std(data=destress_data_num, output_path=data_exploration_output_path, id="destress_data_num")
 
-# Scaling the data with min max scaler
-scaler = MinMaxScaler().fit(destress_data_num)
+if scaling_method == "minmax":
+
+    # Scaling the data with min max scaler
+    scaler = MinMaxScaler().fit(destress_data_num)
+
+elif scaling_method == "standard":
+
+    # Scaling the data with standard scaler scaler
+    scaler = StandardScaler().fit(destress_data_num)
 
 # Transforming the data
 destress_data_scaled = pd.DataFrame(
     scaler.transform(destress_data_num), columns=destress_data_num.columns
 )
+
+# for col in destress_data_num.columns.to_list():
+
+#     sns.histplot(data=destress_data_num, x=col)
+#     plt.savefig(data_exploration_output_path + "/before_scaling/hist_" + col + ".png")
+#     plt.close()
+
+# for col in destress_data_scaled.columns.to_list():
+
+#     sns.histplot(data=destress_data_scaled, x=col)
+#     plt.savefig(data_exploration_output_path + "/after_minmax_scaling/hist_" + col + ".png")
+#     plt.close()
 
 # Calculating mean and std of features
 features_mean_std(data=destress_data_scaled, output_path=data_exploration_output_path, id="destress_data_scaled")
@@ -224,7 +272,7 @@ print(drop_cols_high_corr)
 # # Removing any rows that have NAs in them
 # destress_data = destress_data.dropna(axis=0).reset_index(drop=True)
 
-destress_data_filt.to_csv(data_output_path + "processed_destress_data.csv", index=False)
+destress_data_filt.to_csv(data_output_path + "processed_destress_data_pdb.csv", index=False)
 
 
 

@@ -47,36 +47,36 @@ def pca_var_explained(data, n_components_list, output_path):
     )
     plt.title("""Variance explained by number of pca components.""")
     plt.xlabel("Number of components")
-    plt.savefig(output_path + "pca_var_explained.png")
+    plt.savefig(output_path + "pca_var_explained_pdb.png")
     plt.close()
 
 
-def perform_pca(data, labels_df, n_components, output_path):
+def perform_pca(data, labels_df, n_components, output_path, file_path, components_file_path):
 
     # Performing PCA
-    pca = decomposition.PCA(n_components=n_components)
-    pca.fit(data)
+    pca_model = decomposition.PCA(n_components=n_components)
+    pca_model.fit(data)
 
     # Saving contributions of the features to the principal components
     pca_feat_contr_to_cmpts = pd.DataFrame(
-        np.round(abs(pca.components_), 4), columns=data.columns
+        np.round(abs(pca_model.components_), 4), columns=data.columns
     )
-    pca_feat_contr_to_cmpts.to_csv(output_path + "feat_contr_to_cmpts.csv", index=True)
+    pca_feat_contr_to_cmpts.to_csv(output_path + components_file_path + "_feat_contr_to_cmpts.csv", index=True)
 
     # Selecting the 10 largest contributers to pca component 1
     pca_components_1_contr = pca_feat_contr_to_cmpts.iloc[0].nlargest(10, keep="first")
-    pca_components_1_contr.to_csv(output_path + "components_1_contr.csv", index=True)
+    pca_components_1_contr.to_csv(output_path + components_file_path + "_1_contr.csv", index=True)
 
     # Selecting the 10 largest contributers to pca component 2
     pca_components_2_contr = pca_feat_contr_to_cmpts.iloc[1].nlargest(10, keep="first")
-    pca_components_2_contr.to_csv(output_path + "components_2_contr.csv", index=True)
+    pca_components_2_contr.to_csv(output_path + components_file_path + "_2_contr.csv", index=True)
 
     # Selecting the 10 largest contributers to pca component 2
     pca_components_3_contr = pca_feat_contr_to_cmpts.iloc[2].nlargest(10, keep="first")
-    pca_components_3_contr.to_csv(output_path + "components_3_contr.csv", index=True)
+    pca_components_3_contr.to_csv(output_path + components_file_path + "_3_contr.csv", index=True)
 
     # Transforming the data
-    pca_transformed_data = pca.transform(data)
+    pca_transformed_data = pca_model.transform(data)
 
     # Converting to data frame and renaming columns
     pca_transformed_data = pd.DataFrame(pca_transformed_data).rename(
@@ -91,39 +91,41 @@ def perform_pca(data, labels_df, n_components, output_path):
     # Outputting the transformed data
     pca_transformed_data.to_csv(
         output_path
-        + "pca_transformed_data.csv",
+        + file_path
+        + ".csv",
         index=False,
     )
 
-    return pca_transformed_data
+    return pca_transformed_data, pca_model
 
 
-def plot_pca_2d(pca_data, x, y, hue, alpha, s, output_path, file_name): 
+def plot_latent_space_2d(data, x, y, axes_prefix, legend_title, hue, alpha, s, palette, output_path, file_name): 
 
     sns.color_palette("tab10")
 
-    xlabel = str(int(x[-1]) + 1)
-    ylabel = str(int(y[-1]) + 1)
+    x_id = str(int(x[-1]) + 1)
+    y_id = str(int(y[-1]) + 1)
 
     # PCA 2d scatter plot
     plot= sns.scatterplot(
         x=x,
         y=y,
-        data=pca_data,
+        data=data,
         hue=hue,
         # style=style,
         alpha=alpha,
+        palette=palette,
         s=s,
+        legend=False,
     )
-    # plt.title("PCA of designs by model type and structure id")
-    plt.xlabel("Principal Component " + xlabel)
-    plt.ylabel("Principal Component " + ylabel)
-    sns.move_legend(plot, "upper left", bbox_to_anchor=(1, 1), frameon=False)
-    plot.get_legend().set_title(None)
+    plt.xlabel(axes_prefix + " " + x_id)
+    plt.ylabel(axes_prefix + " " + y_id)
+    # sns.move_legend(plot, "upper left", bbox_to_anchor=(1, 1), frameon=False)
+    # plot.get_legend().set_title(legend_title)
     plt.savefig(
-        output_path + file_name + xlabel + ylabel + ".png",
+        output_path + file_name + x_id + y_id + ".png",
         bbox_inches="tight",
-        dpi=600,
+        dpi=300,
     )
     plt.close()
 
@@ -145,4 +147,31 @@ def plot_pca_plotly(pca_data, x, y, color, hover_data, opacity, size, output_pat
         selector=dict(mode="markers"),
     )
     fig.write_html(output_path + file_name)
+
+
+def spectral_plot(data, x, y, metric, output_path):
+
+    sns.set_theme(style="darkgrid")
+    sns.color_palette("tab10")
+    
+    # Plot the pca spectre for the different sequences
+    sns.lineplot(x=x, 
+                 y=y,
+                 hue=metric,
+                 errorbar="sd",
+                 legend="full",
+                 data=data)
+    plt.legend(
+        loc="lower center",
+        bbox_to_anchor=(0.5, -0.3),
+        ncol=4,
+    )
+    plt.xlabel("Principal Component ID")
+    plt.ylabel("Principal Component Value")
+    plt.savefig(
+        output_path + "pca_spectral_comparison_pdb_" + metric + ".png",
+        bbox_inches="tight",
+        dpi=600,
+    )
+    plt.close()
 
