@@ -1,7 +1,7 @@
 # 0. Loading in packages and defining custom functions--------------------------------------------------
 import numpy as np
 import pandas as pd
-from sklearn.preprocessing import MinMaxScaler, StandardScaler
+from sklearn.preprocessing import MinMaxScaler, StandardScaler, RobustScaler
 from data_prep_tools import *
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -47,8 +47,8 @@ energy_field_list = [
 
 # Defining the cut off for proportion of missing values 
 # (if the feature has more than this then it will be removed)
-# missing_val_threshold = 0.05
-missing_val_threshold = 0.2
+missing_val_threshold = 0.05
+# missing_val_threshold = 0.2
 
 # Defining a low standard deviation threshold
 # (if features have less than this threshold then they are removed)
@@ -88,7 +88,7 @@ drop_cols = ["ss_prop_alpha_helix",
 #              ]
 
 # Defining scaling method
-scaling_method = "minmax"
+scaling_method = "robust"
 
 # 2. Reading in data sets-------------------------------------------------------------------------------
 
@@ -110,8 +110,8 @@ af2_destress_data["pdb_or_af2"] = "AF2"
 pdb_destress_data["pdb_or_af2"] = "PDB"
 
 # Joining af2 and pdb destress data sets
-# destress_data = pd.concat([af2_destress_data, pdb_destress_data]).reset_index(drop=True)
-destress_data = pdb_destress_data
+destress_data = pd.concat([af2_destress_data, pdb_destress_data]).reset_index(drop=True)
+# destress_data = pdb_destress_data
 
 # Removing features that have missing value prop greater than threshold
 destress_data, dropped_cols_miss_vals = remove_missing_val_features(data=destress_data, output_path=data_exploration_output_path, threshold=missing_val_threshold)
@@ -144,6 +144,8 @@ print("There are " + str(num_pdb_structures) + " PDB structures and " + str(num_
 
 
 print(destress_data.columns.to_list())
+
+print("Features dropped because of missing values")
 print(dropped_cols_miss_vals)
 
 # 4. Creating new fields and saving labels--------------------------------------------------------------------------------
@@ -215,6 +217,11 @@ elif scaling_method == "standard":
     # Scaling the data with standard scaler scaler
     scaler = StandardScaler().fit(destress_data_num)
 
+elif scaling_method == "robust":
+
+    # Scaling the data with robust scaler
+    scaler = RobustScaler().fit(destress_data_num)
+
 # Transforming the data
 destress_data_scaled = pd.DataFrame(
     scaler.transform(destress_data_num), columns=destress_data_num.columns
@@ -244,7 +251,10 @@ destress_data_filt, drop_cols_low_std, drop_cols_high_corr= filter_features(data
 
 print(destress_data_filt)
 print(destress_data_filt.columns.to_list())
+
+print("Features dropped because of low std")
 print(drop_cols_low_std)
+print("Features dropped because of high correlation")
 print(drop_cols_high_corr)
 
 # # Defining a column which extracts the uniprot id from the design_name column
@@ -272,7 +282,9 @@ print(drop_cols_high_corr)
 # # Removing any rows that have NAs in them
 # destress_data = destress_data.dropna(axis=0).reset_index(drop=True)
 
-destress_data_filt.to_csv(data_output_path + "processed_destress_data_pdb.csv", index=False)
+destress_data_filt.to_csv(data_output_path + "processed_destress_data.csv", index=False)
+
+
 
 
 

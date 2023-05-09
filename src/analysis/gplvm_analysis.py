@@ -56,54 +56,54 @@ processed_destress_data = pd.read_csv(processed_destress_data_path)
 # Reading in labels
 labels_df = pd.read_csv(labels_df_path)
 
-# Reading in GPLVM data
-gplvm_transformed_data = pd.read_csv("analysis/dim_red/gplvm/gplvm_data.csv")
+# # Reading in GPLVM data
+# gplvm_transformed_data = pd.read_csv("analysis/dim_red/gplvm/gplvm_data.csv")
 
 # 2. Fitting GPLVM-----------------------------------------------------------------------------
 
-# # First setting a random seed so we can replicate results
-# np.random.seed(42)
+# First setting a random seed so we can replicate results
+np.random.seed(42)
 
-# # Creating a torch tensor for the data set
-# scaled_df_torch = torch.tensor(processed_destress_data.sample(n=1000).values, dtype=torch.get_default_dtype())
+# Creating a torch tensor for the data set
+scaled_df_torch = torch.tensor(processed_destress_data.sample(n=1000).values, dtype=torch.get_default_dtype())
 
-# # Transposing the shape
-# y = scaled_df_torch.t()
+# Transposing the shape
+y = scaled_df_torch.t()
 
-# gplvm_X_prior_mean = torch.zeros(y.size(1), 2)
+gplvm_X_prior_mean = torch.zeros(y.size(1), 2)
 
-# # Cloning the priort so that we don't change it during the course of training
-# X = Parameter(gplvm_X_prior_mean.clone())
+# Cloning the priort so that we don't change it during the course of training
+X = Parameter(gplvm_X_prior_mean.clone())
 
-# # Using SparseGPRegression model with num_inducing=32 (default)
-# # The initial values for Xu are sampled randomly from X_prior_mean
-# Xu = stats.resample(gplvm_X_prior_mean.clone(), gplvm_inducing_points)
-# gplvm = gp.models.SparseGPRegression(X=X, y=y, kernel=gplvm_kernel, Xu=Xu, noise=gplvm_noise, jitter=gplvm_jitter)
+# Using SparseGPRegression model with num_inducing=32 (default)
+# The initial values for Xu are sampled randomly from X_prior_mean
+Xu = stats.resample(gplvm_X_prior_mean.clone(), gplvm_inducing_points)
+gplvm = gp.models.SparseGPRegression(X=X, y=y, kernel=gplvm_kernel, Xu=Xu, noise=gplvm_noise, jitter=gplvm_jitter)
 
-# # Using `.to_event()` to tell Pyro that the prior distribution for X has no batch_shape
-# gplvm.X = pyro.nn.PyroSample(dist.Normal(gplvm_X_prior_mean, 0.1).to_event())
-# gplvm.autoguide("X", dist.Normal)
+# Using `.to_event()` to tell Pyro that the prior distribution for X has no batch_shape
+gplvm.X = pyro.nn.PyroSample(dist.Normal(gplvm_X_prior_mean, 0.1).to_event())
+gplvm.autoguide("X", dist.Normal)
 
-# # Extracting the losses
-# losses = gp.util.train(gplvm, num_steps=gplvm_train_num_steps)
+# Extracting the losses
+losses = gp.util.train(gplvm, num_steps=gplvm_train_num_steps)
 
-# # Plotting the losses
-# plt.plot(losses)
-# plt.savefig(gplvm_analysis_path + "gplvm_training_losses.png", bbox_inches="tight", dpi=600)
-# plt.close()
+# Plotting the losses
+plt.plot(losses)
+plt.savefig(gplvm_analysis_path + "gplvm_training_losses.png", bbox_inches="tight", dpi=600)
+plt.close()
 
-# # Extracting the gplvm fitted dimensions
-# X = pd.DataFrame(gplvm.X_loc.detach().numpy(), columns=["dim0", "dim1"])
+# Extracting the gplvm fitted dimensions
+X = pd.DataFrame(gplvm.X_loc.detach().numpy(), columns=["dim0", "dim1"])
 
-# # Adding the labels back
-# gplvm_transformed_data = pd.concat(
-#     [ labels_df,
-#       X,
-#     ],
-#     axis=1,
-# )
+# Adding the labels back
+gplvm_transformed_data = pd.concat(
+    [ labels_df,
+      X,
+    ],
+    axis=1,
+)
 
-# gplvm_transformed_data.to_csv(gplvm_analysis_path + "gplvm_transformed_data.csv", index=False)
+gplvm_transformed_data.to_csv(gplvm_analysis_path + "gplvm_transformed_data.csv", index=False)
 
 sns.set_theme(style="darkgrid")
 

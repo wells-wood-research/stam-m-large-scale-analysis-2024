@@ -71,9 +71,9 @@ def perform_pca(data, labels_df, n_components, output_path, file_path, component
     pca_components_2_contr = pca_feat_contr_to_cmpts.iloc[1].nlargest(10, keep="first")
     pca_components_2_contr.to_csv(output_path + components_file_path + "_2_contr.csv", index=True)
 
-    # Selecting the 10 largest contributers to pca component 2
-    pca_components_3_contr = pca_feat_contr_to_cmpts.iloc[2].nlargest(10, keep="first")
-    pca_components_3_contr.to_csv(output_path + components_file_path + "_3_contr.csv", index=True)
+    # # Selecting the 10 largest contributers to pca component 2
+    # pca_components_3_contr = pca_feat_contr_to_cmpts.iloc[2].nlargest(10, keep="first")
+    # pca_components_3_contr.to_csv(output_path + components_file_path + "_3_contr.csv", index=True)
 
     # Transforming the data
     pca_transformed_data = pca_model.transform(data)
@@ -83,10 +83,16 @@ def perform_pca(data, labels_df, n_components, output_path, file_path, component
         columns={0: "dim0", 1: "dim1", 2: "dim2", 3: "dim3", 4: "dim4", 5: "dim5", 6: "dim6", 7: "dim7", 8: "dim8", 9: "dim9"}
     )
 
-    # Adding the labels back
-    pca_transformed_data = pd.concat(
-        [labels_df, pca_transformed_data], axis=1
-    )
+    if labels_df is None:
+
+        pca_transformed_data = pca_transformed_data
+
+    else:
+
+        # Adding the labels back
+        pca_transformed_data = pd.concat(
+            [labels_df, pca_transformed_data], axis=1
+        )
 
     # Outputting the transformed data
     pca_transformed_data.to_csv(
@@ -116,11 +122,11 @@ def plot_latent_space_2d(data, x, y, axes_prefix, legend_title, hue, alpha, s, p
         alpha=alpha,
         palette=palette,
         s=s,
-        legend=False,
+        legend=True,
     )
     plt.xlabel(axes_prefix + " " + x_id)
     plt.ylabel(axes_prefix + " " + y_id)
-    # sns.move_legend(plot, "upper left", bbox_to_anchor=(1, 1), frameon=False)
+    sns.move_legend(plot, "upper left", bbox_to_anchor=(1, 1), frameon=False)
     # plot.get_legend().set_title(legend_title)
     plt.savefig(
         output_path + file_name + x_id + y_id + ".png",
