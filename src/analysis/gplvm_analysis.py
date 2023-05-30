@@ -43,7 +43,11 @@ np.random.seed(42)
 gplvm_input_dim = 2
 gplvm_lengthscale = torch.ones(2)
 gplvm_kernel = gp.kernels.RBF(input_dim=gplvm_input_dim, lengthscale=gplvm_lengthscale)
-gplvm_noise = torch.tensor(0.01)
+# gplvm_kernel = gp.kernels.Exponential(input_dim=gplvm_input_dim)
+# gplvm_kernel = gp.kernels.Polynomial(input_dim=gplvm_input_dim)
+# gplvm_kernel = gp.kernels.RationalQuadratic(input_dim=gplvm_input_dim, lengthscale=gplvm_lengthscale)
+# gplvm_kernel = gp.kernels.DotProduct(input_dim=gplvm_input_dim)
+gplvm_noise = torch.tensor(0.0)
 gplvm_inducing_points=32
 gplvm_jitter = 1e-5
 gplvm_train_num_steps = 5000
@@ -65,7 +69,7 @@ labels_df = pd.read_csv(labels_df_path)
 np.random.seed(42)
 
 # Creating a torch tensor for the data set
-scaled_df_torch = torch.tensor(processed_destress_data.sample(n=1000).values, dtype=torch.get_default_dtype())
+scaled_df_torch = torch.tensor(processed_destress_data.sample(n=2000).values, dtype=torch.get_default_dtype())
 
 # Transposing the shape
 y = scaled_df_torch.t()
@@ -81,8 +85,10 @@ Xu = stats.resample(gplvm_X_prior_mean.clone(), gplvm_inducing_points)
 gplvm = gp.models.SparseGPRegression(X=X, y=y, kernel=gplvm_kernel, Xu=Xu, noise=gplvm_noise, jitter=gplvm_jitter)
 
 # Using `.to_event()` to tell Pyro that the prior distribution for X has no batch_shape
-gplvm.X = pyro.nn.PyroSample(dist.Normal(gplvm_X_prior_mean, 0.1).to_event())
+gplvm.X = pyro.nn.PyroSample(dist.Normal(gplvm_X_prior_mean, 0.5).to_event())
 gplvm.autoguide("X", dist.Normal)
+
+print(gplvm.X)
 
 # Extracting the losses
 losses = gp.util.train(gplvm, num_steps=gplvm_train_num_steps)

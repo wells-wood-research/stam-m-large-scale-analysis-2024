@@ -62,6 +62,8 @@ pca_transformed_data_filt = pd.concat([pca_transformed_data_filt, labels_df_filt
 
 print(processed_destress_data_filt.columns.to_list())
 
+wcss = []
+
 for kmeans_clusters in kmeans_clusters_list:
 
     print(kmeans_clusters)
@@ -69,6 +71,8 @@ for kmeans_clusters in kmeans_clusters_list:
     # Fitting the model
     model = KMeans(n_clusters=kmeans_clusters, random_state=42)
     model_fit = model.fit(processed_destress_data_filt)
+
+    wcss.append(model.inertia_)
 
     # Extracting the labels
     predicted_labels = model_fit.labels_
@@ -85,6 +89,14 @@ processed_destress_data_filt.to_csv(clustering_output_path + "processed_destress
 pca_transformed_data_filt.to_csv(clustering_output_path + "pca_transformed_data_clusters.csv")
 
 # 4. Plotting-------------------------------------------------------------------
+
+sns.lineplot(x=kmeans_clusters_list, y=wcss)
+plt.savefig(
+    clustering_output_path + "elbow_method.png",
+    bbox_inches="tight",
+    dpi=300,
+)
+plt.close()
 
 for kmeans_clusters in kmeans_clusters_list:
 
