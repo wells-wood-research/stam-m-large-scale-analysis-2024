@@ -44,7 +44,6 @@ def receive_uniprot_data(job_id):
 
     # Running this curl command
     uniprot_results_output = subprocess.run(request_results_cmd, capture_output=True)
-    # print(uniprot_results_output)
     uniprot_results_output.check_returncode()
     
     # Extracting the result string
@@ -59,7 +58,7 @@ def receive_uniprot_data(job_id):
 destress_data_pdb_path = "data/raw_data/pdb/destress_data_pdb.csv"
 data_output_path = "/home/michael/GitRepos/illuminating-protein-structural-universe/data/raw_data/uniprot/pdb/"
 
-# 2. Querying the uniprot data and starting jobs--------------------------------------------------------------------------
+# # 2. Querying the uniprot data and starting jobs--------------------------------------------------------------------------
 
 # # Reading in destress pdb data
 # destress_data_pdb = pd.read_csv(destress_data_pdb_path)
@@ -69,7 +68,7 @@ data_output_path = "/home/michael/GitRepos/illuminating-protein-structural-unive
 
 # # Splitting the uniprot ids into batches of 100,000 
 # # (this is the max that the uniprot API can handle)
-# pdb_ids_list_batches = [pdb_id_list[i:i + 10000] for i in range(0, len(pdb_id_list), 10000)]
+# pdb_ids_list_batches = [pdb_id_list[i:i + 2000] for i in range(0, len(pdb_id_list), 2000)]
 
 # # Querying the uniprot database for the different 
 # # batches of uni prot ids
@@ -91,7 +90,7 @@ job_ids_df = pd.read_csv(data_output_path + "job_ids_df.csv")
 job_ids_list = job_ids_df["job_id"].to_list()
 
 # Receiving results for each of the job ids
-for job_id in job_ids_list[0:4]:
+for job_id in job_ids_list:
     print(job_id)
     results = receive_uniprot_data(job_id=job_id)
 

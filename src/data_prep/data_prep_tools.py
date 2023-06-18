@@ -26,6 +26,8 @@ def save_destress_labels(data, labels, output_path, file_path):
     data_filt = data[labels]
     data_filt.to_csv(output_path + file_path + ".csv", index=False)
 
+    return labels
+
 # Defining a function to compute mean and std of features
 def features_mean_std(data, output_path, id):
 
@@ -41,6 +43,7 @@ def remove_highest_correlators(data, corr_coeff_threshold):
 
     data_corr = stats.spearmanr(data)
     data_corr_df = pd.DataFrame(data_corr[0], columns=data.columns.to_list(), index=data.columns.to_list())
+    data_corr_df.to_csv("corr_matrix.csv", index=False)
     data_corr_df_abs = data_corr_df.abs()
     data_cutoff_count = data_corr_df_abs[data_corr_df_abs > corr_coeff_threshold].count().sort_values(ascending=False)
 

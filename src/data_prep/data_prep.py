@@ -9,12 +9,19 @@ import seaborn as sns
 
 # 1. Defining variables---------------------------------------------------------------------------------
 
+# Defining pdb, af2 or both
+pdb_or_af2 = "both"
+
+# Defining scaling method
+scaling_method = "standard"
+
 # Defining file paths
 raw_af2_destress_data_path = "data/raw_data/af2/destress_data_af2.csv"
 raw_pdb_destress_data_path = "data/raw_data/pdb/destress_data_pdb.csv"
-data_output_path = "data/processed_data/"
+data_output_path = "data/processed_data/" + pdb_or_af2 + "/" + scaling_method + "/"
 data_exploration_output_path = "analysis/data_exploration/"
-processed_uniprot_data_path = "data/processed_data/uniprot_data_df.csv"
+processed_uniprot_data_af2_path = "data/processed_data/processed_uniprot_data_af2.csv"
+processed_uniprot_data_pdb_path = "data/processed_data/processed_uniprot_data_pdb.csv"
 
 # Defining a list of energy field names
 energy_field_list = [
@@ -56,7 +63,7 @@ low_std_threshold = 0.02
 
 # Defining a threshold for the spearman correlation coeffient
 # in order to remove highly correlated variables
-corr_coeff_threshold = 0.75
+corr_coeff_threshold = 0.6
 
 # Defining dim red labels
 dim_red_labels = ["design_name", 
@@ -67,7 +74,9 @@ dim_red_labels = ["design_name",
                   "rosetta_total", 
                   "packing_density", 
                   "hydrophobic_fitness", 
-                  "aggrescan3d_avg_value"]
+                  "aggrescan3d_avg_value",
+                  "organism_scientific_name",
+                  "organism_group",]
 
 # Defining cols to drop 
 drop_cols = ["ss_prop_alpha_helix", 
@@ -81,14 +90,72 @@ drop_cols = ["ss_prop_alpha_helix",
              "charge",
              "mass",
              "num_residues",
+             'uniprot_join_id', 
+             'primary_accession', 
+             'pdb_id', 
+             'organism_scientific_name_pdb',
+             'organism_scientific_name_af2',
              ]
 
 # drop_cols = ["mass",
 #              "num_residues",
 #              ]
 
-# Defining scaling method
-scaling_method = "robust"
+
+
+
+# Setting organism groups
+organism_animal_list = ["Caenorhabditis elegans",
+                        "Danio rerio",
+                        "Drosophila melanogaster",
+                        "Mus musculus",
+                        "Rattus norvegicus",
+                        "Homo sapiens",
+                        "Brugia malayi",
+                        "Dracunculus medinensis",
+                        "Leishmania infantum",
+                        "Onchocerca volvulus",
+                        "Paracoccidioides lutzii",
+                        "Schistosoma mansoni",
+                        "Strongyloides stercoralis",
+                        "Trichuris trichiura",
+                        "Trypanosoma brucei",
+                        "Trypanosoma cruzi",
+                        "Wuchereria bancrofti"]
+
+organism_fungi_list = ["Candida albicans",
+                        "Dictyostelium discoideum",
+                        "Saccharomyces cerevisiae",
+                        "Cladophialophora carrionii",
+                        "Fonsecaea pedrosoi",
+                        "Madurella mycetomatis",
+                        "Sporothrix schenckii",
+                        "Ajellomyces capsulatus",
+                        "Schizosaccharomyces pombe"]
+organism_bacteria_list = ["Escherichia coli",
+                            "Helicobacter pylori",
+                            "Campylobacter jejuni",
+                            "Enterococcus faecium",
+                            "Klebsiella pneumoniae",
+                            "Mycobacterium leprae",
+                            "Mycobacterium tuberculosis",
+                            "Mycobacterium ulcerans",
+                            "Neisseria gonorrhoeae",
+                            "Nocardia brasiliensis",
+                            "Pseudomonas aeruginosa",
+                            "Salmonella typhimurium",
+                            "Shigella dysenteriae",
+                            "Staphylococcus aureus",
+                            "Streptococcus pneumoniae"]
+organism_plant_list = ["Arabidopsis thaliana",
+                        "Glycine max",
+                        "Oryza sativa",
+                        "Zea mays"]
+organism_other_list = ["Methanocaldococcus jannaschii", 
+                       "Haemophilus influenzae",
+                       "Plasmodium falciparum",
+                       "Other", 
+                       "Unknown"]
 
 # 2. Reading in data sets-------------------------------------------------------------------------------
 
@@ -99,7 +166,8 @@ raw_af2_destress_data = pd.read_csv(raw_af2_destress_data_path)
 raw_pdb_destress_data = pd.read_csv(raw_pdb_destress_data_path)
 
 # Reading in processed uniprot data
-processed_uniprot_data = pd.read_csv(processed_uniprot_data_path)
+processed_uniprot_data_af2 = pd.read_csv(processed_uniprot_data_af2_path)
+processed_uniprot_data_pdb = pd.read_csv(processed_uniprot_data_pdb_path)
 
 # 3. Joining data sets and removing missing values-------------------------------------------------------------------------------------
 
@@ -111,7 +179,7 @@ pdb_destress_data["pdb_or_af2"] = "PDB"
 
 # Joining af2 and pdb destress data sets
 destress_data = pd.concat([af2_destress_data, pdb_destress_data]).reset_index(drop=True)
-# destress_data = pdb_destress_data
+# destress_data = af2_destress_data
 
 # Removing features that have missing value prop greater than threshold
 destress_data, dropped_cols_miss_vals = remove_missing_val_features(data=destress_data, output_path=data_exploration_output_path, threshold=missing_val_threshold)
@@ -179,26 +247,59 @@ destress_data["dssp_bin"] = np.select(
 #     default="Other",
 # )
 
+# Defining a column which extracts the uniprot id from the design_name column
+destress_data["uniprot_join_id"] = np.where(destress_data["pdb_or_af2"] == "AF2" , 
+                                            destress_data["design_name"].str.split("-").str[1],
+                                            destress_data["design_name"].str[3:8])
 
+# Joining on processed uniprot data af2 by uniprot id
+destress_data_uniprot = destress_data.merge(processed_uniprot_data_af2[["primary_accession", "organism_scientific_name_af2"]], how="left", left_on="uniprot_join_id", right_on = "primary_accession")
+destress_data_uniprot = destress_data_uniprot.merge(processed_uniprot_data_pdb[["pdb_id", "organism_scientific_name_pdb"]], how="left", left_on="uniprot_join_id", right_on = "pdb_id")
+
+destress_data_uniprot["organism_scientific_name"] = np.where(destress_data_uniprot["pdb_or_af2"] == "AF2",
+                                                             destress_data_uniprot["organism_scientific_name_af2"],
+                                                             destress_data_uniprot["organism_scientific_name_pdb"])
+
+# destress_data_uniprot["organism_scientific_name"] = np.where(destress_data_uniprot["pdb_or_af2"] == "AF2",
+#                                                              destress_data_uniprot["organism_scientific_name_af2"],
+#                                                              "")
+
+destress_data_uniprot["organism_scientific_name"] = np.where(destress_data_uniprot["organism_scientific_name"].isnull(),
+                                                             "Unknown",
+                                                             destress_data_uniprot["organism_scientific_name"])
+
+# Adding a new field to create an organism group
+destress_data_uniprot["organism_group"] = np.select(
+    [
+        destress_data_uniprot["organism_scientific_name"].isin(organism_animal_list),
+        destress_data_uniprot["organism_scientific_name"].isin(organism_fungi_list),
+        destress_data_uniprot["organism_scientific_name"].isin(organism_bacteria_list),
+        destress_data_uniprot["organism_scientific_name"].isin(organism_plant_list),
+        destress_data_uniprot["organism_scientific_name"].isin(organism_other_list)
+    ],
+    ["Animal", "Fungi", "Bacteria", "Plant", "Other",
+     ],
+    default="Unknown",
+)
 
 # Normalising energy field values by the number of residues
-destress_data.loc[:, energy_field_list,] = destress_data.loc[
+destress_data_uniprot.loc[:, energy_field_list,] = destress_data_uniprot.loc[
     :,
     energy_field_list,
-].div(destress_data["num_residues"], axis=0)
+].div(destress_data_uniprot["num_residues"], axis=0)
 
 # Saving labels
-save_destress_labels(data=destress_data, labels=dim_red_labels, output_path=data_output_path, file_path="labels_pdb")
+labels = save_destress_labels(data=destress_data_uniprot, labels=dim_red_labels, output_path=data_output_path, file_path="labels")
 
 # 5. Scaling features--------------------------------------------------------------
 
-destress_columns_full = destress_data.columns.to_list()
+destress_columns_full = destress_data_uniprot.columns.to_list()
 
 # Dropping columns that have been defined manually 
-destress_data = destress_data.drop(drop_cols, axis=1)
+destress_data_uniprot = destress_data_uniprot.drop(drop_cols, axis=1)
 
 # Dropping columns that are not numeric
-destress_data_num = destress_data.select_dtypes([np.number]).reset_index(drop=True)
+destress_data_num = destress_data_uniprot.select_dtypes([np.number]).reset_index(drop=True)
 
 # Printing columns that are dropped because they are not numeric
 destress_columns_num = destress_data_num.columns.to_list()
@@ -257,11 +358,6 @@ print(drop_cols_low_std)
 print("Features dropped because of high correlation")
 print(drop_cols_high_corr)
 
-# # Defining a column which extracts the uniprot id from the design_name column
-# destress_data["uniprot_id"] = processed_af2_destress_data["design_name"].str.split("-").str[1]
-
-# # Joining on processed uniprot data by uniprot id
-# destress_data = destress_data.merge(processed_uniprot_data, how="left", left_on="uniprot_id", right_on = "primary_accession")
 
 # # Removing columns 
 # destress_data.drop(

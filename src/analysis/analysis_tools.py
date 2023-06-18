@@ -5,12 +5,16 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import plotly.express as px
 from sklearn import decomposition
+from sklearn.ensemble import IsolationForest
+from sklearn.metrics import pairwise_distances
+from Bio import Phylo
+from Bio.Phylo.TreeConstruction import DistanceMatrix, DistanceTreeConstructor
 
 # 1. Defining helper functions for PCA------------------
 
 # Defining a function to calculate the variance explained by a 
 # number of different principal components
-def pca_var_explained(data, n_components_list, output_path):
+def pca_var_explained(data, n_components_list, file_name, output_path):
 
     # Creating a data frame to collect results
     var_explained_df = pd.DataFrame(columns=["n_components", "var_explained"])
@@ -33,7 +37,7 @@ def pca_var_explained(data, n_components_list, output_path):
 
     # Saving as a csv file
     var_explained_df.to_csv(
-        output_path + "pca_var_explained.csv",
+        output_path + file_name + ".csv",
         index=False,
     )
 
@@ -47,7 +51,7 @@ def pca_var_explained(data, n_components_list, output_path):
     )
     plt.title("""Variance explained by number of pca components.""")
     plt.xlabel("Number of components")
-    plt.savefig(output_path + "pca_var_explained_pdb.png")
+    plt.savefig(output_path + file_name + ".png")
     plt.close()
 
 
@@ -80,7 +84,7 @@ def perform_pca(data, labels_df, n_components, output_path, file_path, component
 
     # Converting to data frame and renaming columns
     pca_transformed_data = pd.DataFrame(pca_transformed_data).rename(
-        columns={0: "dim0", 1: "dim1", 2: "dim2", 3: "dim3", 4: "dim4", 5: "dim5", 6: "dim6", 7: "dim7", 8: "dim8", 9: "dim9"}
+        columns={0: "dim0", 1: "dim1", 2: "dim2", 3: "dim3", 4: "dim4", 5: "dim5", 6: "dim6", 7: "dim7", 8: "dim8", 9: "dim9", 10: "dim10", 11: "dim11", 12: "dim12", 13: "dim13", 14: "dim14", 15: "dim15", 16: "dim16", 17: "dim17", 18: "dim18", 19: "dim19"}
     )
 
     if labels_df is None:
@@ -155,7 +159,7 @@ def plot_pca_plotly(pca_data, x, y, color, hover_data, opacity, size, output_pat
     fig.write_html(output_path + file_name)
 
 
-def spectral_plot(data, x, y, metric, output_path):
+def spectral_plot(data, x, y, ax, metric, output_path):
 
     sns.set_theme(style="darkgrid")
     sns.color_palette("tab10")
@@ -166,18 +170,73 @@ def spectral_plot(data, x, y, metric, output_path):
                  hue=metric,
                  errorbar="sd",
                  legend="full",
+                 ax=ax,
                  data=data)
-    plt.legend(
-        loc="lower center",
-        bbox_to_anchor=(0.5, -0.3),
-        ncol=4,
-    )
-    plt.xlabel("Principal Component ID")
-    plt.ylabel("Principal Component Value")
-    plt.savefig(
-        output_path + "pca_spectral_comparison_pdb_" + metric + ".png",
-        bbox_inches="tight",
-        dpi=600,
-    )
-    plt.close()
+    # ax.legend(
+    #     loc="lower center",
+    #     bbox_to_anchor=(0.5, -0.3),
+    #     ncol=1,
+    # )
+    ax.set_xlabel("Principal Component ID")
+    ax.set_ylabel("Principal Component Value")
+#     plt.savefig(
+#     output_path + file_name + ".png",
+#     bbox_inches="tight",
+#     dpi=600,
+# )
+    # plt.close()
+
+
+def distance_to_reference(data, dim_columns, distance_metric, output_path):
+
+    # Filtering
+    pca_data_filt = data[dim_columns]
+
+    # Computing distances
+    distances = pairwise_distances(X=pca_data_filt, metric=distance_metric, n_jobs=1)
+
+    # Converting to a data frame
+    distances_df = pd.DataFrame(distances, columns = data["organism_scientific_name"].to_list())
+
+    distances_df = distances_df.round(decimals=4)
+
+    # Outputting as a csv
+    distances_df.to_csv(output_path + "pca" + str(len(dim_columns)) + "d_distances_all.csv", index=False)
+
+    return distances_df
+
+
+# Defining a function to perform outlier detection
+def outlier_detection_iso_for(data, labels, contamination, n_estimators, max_features, output_path, file_name):
+
+    # Isolation Forest
+    iso_for = IsolationForest(random_state=42, n_estimators=n_estimators, max_features=max_features, contamination=contamination).fit(data)
+    iso_for_pred = iso_for.predict(data)
+    iso_for_pred_df = pd.DataFrame(iso_for_pred, columns=["iso_for_pred"])
+
+    # Outputting outliers to a csv file
+    iso_for_outliers = pd.concat([data, labels, iso_for_pred_df], axis=1)
+    iso_for_outliers = iso_for_outliers[iso_for_outliers["iso_for_pred"] == -1].reset_index(drop=True)
+    iso_for_outliers.to_csv(output_path + file_name + str(contamination) + ".csv", index=False)
+
+    # data_outliers_removed = features[iso_for_pred_df["iso_for_pred"] != -1].reset_index(drop=True)
+    # labels_outliers_removed = labels[iso_for_pred_df["iso_for_pred"] != -1].reset_index(drop=True)
+
+    return iso_for_pred_df
+
+
+def phylo_tree_from_dist_matrix(distance_matrix, organism_names):
+
+    # Create a DistanceMatrix object from the distance matrix and organism names
+    dist_matrix = DistanceMatrix(organism_names, matrix=distance_matrix)
+
+    # Use the DistanceTreeConstructor to build the tree
+    constructor = DistanceTreeConstructor()
+    tree = constructor.upgma(dist_matrix)
+
+    # Print the resulting tree
+    Phylo.draw(tree)
+
+    return tree
+
 
