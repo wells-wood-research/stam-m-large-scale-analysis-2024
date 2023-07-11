@@ -1,29 +1,38 @@
-# 0. Loading in packages and defining custom functions--------------------------------------------------
-import numpy as np
-import pandas as pd
-from sklearn.preprocessing import MinMaxScaler, StandardScaler, RobustScaler
+# This script is the main script which prepares the PDB and AF2 DE-STRESS data
+# so that it is ready for downstream analysis.
+
+# 0. Importing packages and helper functions---------------------------------------------
 from data_prep_tools import *
-import matplotlib.pyplot as plt
-import seaborn as sns
+import numpy as np
+from sklearn.preprocessing import MinMaxScaler, StandardScaler, RobustScaler
 
+# 1. Defining variables------------------------------------------------------------------
 
-# 1. Defining variables---------------------------------------------------------------------------------
+# Defining the data set list
+# dataset_list = ["pdb", "af2", "both"]
+dataset_list = ["af2"]
 
-# Defining pdb, af2 or both
-pdb_or_af2 = "both"
+# Defining a list of values for isolation forest
+# outlier detection contamination factor
+iso_for_contamination_list = [0.00, 0.01, 0.02, 0.03, 0.04, 0.05]
+# iso_for_contamination_list = [0.0]
 
-# Defining scaling method
-scaling_method = "standard"
+# Defining the scaling methods list
+scaling_method_list = ["standard", "robust", "minmax"]
 
-# Defining file paths
+# Defining file paths for raw data
 raw_af2_destress_data_path = "data/raw_data/af2/destress_data_af2.csv"
 raw_pdb_destress_data_path = "data/raw_data/pdb/destress_data_pdb.csv"
-data_output_path = "data/processed_data/" + pdb_or_af2 + "/" + scaling_method + "/"
-data_exploration_output_path = "analysis/data_exploration/"
-processed_uniprot_data_af2_path = "data/processed_data/processed_uniprot_data_af2.csv"
-processed_uniprot_data_pdb_path = "data/processed_data/processed_uniprot_data_pdb.csv"
 
-# Defining a list of energy field names
+# Defining file paths for the processed uniprot data sets
+processed_uniprot_data_af2_path = (
+    "data/processed_data/uniprot/processed_uniprot_data_af2.csv"
+)
+processed_uniprot_data_pdb_path = (
+    "data/processed_data/uniprot/processed_uniprot_data_pdb.csv"
+)
+
+# Defining a list of DE-STRESS metrics which are energy field metrics
 energy_field_list = [
     "hydrophobic_fitness",
     "evoef2_total",
@@ -52,110 +61,113 @@ energy_field_list = [
     "rosetta_yhh_planarity",
 ]
 
-# Defining the cut off for proportion of missing values 
-# (if the feature has more than this then it will be removed)
-missing_val_threshold = 0.05
-# missing_val_threshold = 0.2
+# Defining cols to drop
+drop_cols = [
+    "ss_prop_alpha_helix",
+    "ss_prop_beta_bridge",
+    "ss_prop_beta_strand",
+    "ss_prop_3_10_helix",
+    "ss_prop_pi_helix",
+    "ss_prop_hbonded_turn",
+    "ss_prop_bend",
+    "ss_prop_loop",
+    "charge",
+    "mass",
+    "num_residues",
+    "uniprot_join_id",
+    "aggrescan3d_total_value",
+    "rosetta_pro_close",
+    "rosetta_omega",
+    "rosetta_total",
+    "rosetta_fa_rep",
+    "evoef2_total",
+    "evoef2_interS_total",
+]
 
-# Defining a low standard deviation threshold
-# (if features have less than this threshold then they are removed)
-low_std_threshold = 0.02
+# Defining the organism groups
+organism_animal_list = [
+    "Caenorhabditis elegans",
+    "Danio rerio",
+    "Drosophila melanogaster",
+    "Mus musculus",
+    "Rattus norvegicus",
+    "Homo sapiens",
+    "Brugia malayi",
+    "Dracunculus medinensis",
+    "Leishmania infantum",
+    "Onchocerca volvulus",
+    "Paracoccidioides lutzii",
+    "Schistosoma mansoni",
+    "Strongyloides stercoralis",
+    "Trichuris trichiura",
+    "Trypanosoma brucei",
+    "Trypanosoma cruzi",
+    "Wuchereria bancrofti",
+]
+
+organism_fungi_list = [
+    "Candida albicans",
+    "Dictyostelium discoideum",
+    "Saccharomyces cerevisiae",
+    "Cladophialophora carrionii",
+    "Fonsecaea pedrosoi",
+    "Madurella mycetomatis",
+    "Sporothrix schenckii",
+    "Ajellomyces capsulatus",
+    "Schizosaccharomyces pombe",
+]
+organism_bacteria_list = [
+    "Escherichia coli",
+    "Helicobacter pylori",
+    "Campylobacter jejuni",
+    "Enterococcus faecium",
+    "Klebsiella pneumoniae",
+    "Mycobacterium leprae",
+    "Mycobacterium tuberculosis",
+    "Mycobacterium ulcerans",
+    "Neisseria gonorrhoeae",
+    "Nocardia brasiliensis",
+    "Pseudomonas aeruginosa",
+    "Salmonella typhimurium",
+    "Shigella dysenteriae",
+    "Staphylococcus aureus",
+    "Streptococcus pneumoniae",
+]
+organism_plant_list = [
+    "Arabidopsis thaliana",
+    "Glycine max",
+    "Oryza sativa",
+    "Zea mays",
+]
+organism_other_list = [
+    "Methanocaldococcus jannaschii",
+    "Haemophilus influenzae",
+    "Plasmodium falciparum",
+    "Other",
+    "Unknown",
+]
+
+# Defining the labels that we are interested in
+labels = [
+    "design_name",
+    "dssp_bin",
+    "pdb_or_af2",
+    "charge",
+    "isoelectric_point",
+    "rosetta_total",
+    "packing_density",
+    "hydrophobic_fitness",
+    "aggrescan3d_avg_value",
+    "organism_scientific_name",
+    "organism_group",
+]
 
 # Defining a threshold for the spearman correlation coeffient
 # in order to remove highly correlated variables
 corr_coeff_threshold = 0.6
 
-# Defining dim red labels
-dim_red_labels = ["design_name", 
-                  "dssp_bin", 
-                  "pdb_or_af2", 
-                  "charge", 
-                  "isoelectric_point", 
-                  "rosetta_total", 
-                  "packing_density", 
-                  "hydrophobic_fitness", 
-                  "aggrescan3d_avg_value",
-                  "organism_scientific_name",
-                  "organism_group",]
-
-# Defining cols to drop 
-drop_cols = ["ss_prop_alpha_helix", 
-             "ss_prop_beta_bridge", 
-             "ss_prop_beta_strand",
-             "ss_prop_3_10_helix",
-             "ss_prop_pi_helix",
-             "ss_prop_hbonded_turn",
-             "ss_prop_bend",
-             "ss_prop_loop",
-             "charge",
-             "mass",
-             "num_residues",
-             'uniprot_join_id', 
-             'primary_accession', 
-             'pdb_id', 
-             'organism_scientific_name_pdb',
-             'organism_scientific_name_af2',
-             ]
-
-# drop_cols = ["mass",
-#              "num_residues",
-#              ]
-
-
-
-
-# Setting organism groups
-organism_animal_list = ["Caenorhabditis elegans",
-                        "Danio rerio",
-                        "Drosophila melanogaster",
-                        "Mus musculus",
-                        "Rattus norvegicus",
-                        "Homo sapiens",
-                        "Brugia malayi",
-                        "Dracunculus medinensis",
-                        "Leishmania infantum",
-                        "Onchocerca volvulus",
-                        "Paracoccidioides lutzii",
-                        "Schistosoma mansoni",
-                        "Strongyloides stercoralis",
-                        "Trichuris trichiura",
-                        "Trypanosoma brucei",
-                        "Trypanosoma cruzi",
-                        "Wuchereria bancrofti"]
-
-organism_fungi_list = ["Candida albicans",
-                        "Dictyostelium discoideum",
-                        "Saccharomyces cerevisiae",
-                        "Cladophialophora carrionii",
-                        "Fonsecaea pedrosoi",
-                        "Madurella mycetomatis",
-                        "Sporothrix schenckii",
-                        "Ajellomyces capsulatus",
-                        "Schizosaccharomyces pombe"]
-organism_bacteria_list = ["Escherichia coli",
-                            "Helicobacter pylori",
-                            "Campylobacter jejuni",
-                            "Enterococcus faecium",
-                            "Klebsiella pneumoniae",
-                            "Mycobacterium leprae",
-                            "Mycobacterium tuberculosis",
-                            "Mycobacterium ulcerans",
-                            "Neisseria gonorrhoeae",
-                            "Nocardia brasiliensis",
-                            "Pseudomonas aeruginosa",
-                            "Salmonella typhimurium",
-                            "Shigella dysenteriae",
-                            "Staphylococcus aureus",
-                            "Streptococcus pneumoniae"]
-organism_plant_list = ["Arabidopsis thaliana",
-                        "Glycine max",
-                        "Oryza sativa",
-                        "Zea mays"]
-organism_other_list = ["Methanocaldococcus jannaschii", 
-                       "Haemophilus influenzae",
-                       "Plasmodium falciparum",
-                       "Other", 
-                       "Unknown"]
+# Defining a threshold to remove features that have pretty much the same value
+constant_features_threshold = 0.25
 
 # 2. Reading in data sets-------------------------------------------------------------------------------
 
@@ -169,219 +181,381 @@ raw_pdb_destress_data = pd.read_csv(raw_pdb_destress_data_path)
 processed_uniprot_data_af2 = pd.read_csv(processed_uniprot_data_af2_path)
 processed_uniprot_data_pdb = pd.read_csv(processed_uniprot_data_pdb_path)
 
-# 3. Joining data sets and removing missing values-------------------------------------------------------------------------------------
-
 af2_destress_data = raw_af2_destress_data
 pdb_destress_data = raw_pdb_destress_data
 
 af2_destress_data["pdb_or_af2"] = "AF2"
 pdb_destress_data["pdb_or_af2"] = "PDB"
 
-# Joining af2 and pdb destress data sets
-destress_data = pd.concat([af2_destress_data, pdb_destress_data]).reset_index(drop=True)
-# destress_data = af2_destress_data
 
-# Removing features that have missing value prop greater than threshold
-destress_data, dropped_cols_miss_vals = remove_missing_val_features(data=destress_data, output_path=data_exploration_output_path, threshold=missing_val_threshold)
+# 3. Joining datasets and removing missing values-----------------------------------------------------------------------------
 
-# Calculating total number of structures that DE-STRESS ran for
-num_structures = destress_data.shape[0]
+# Looping through the different data sets
+for dataset in dataset_list:
+    data_exploration_output_path = "analysis/data_exploration/" + dataset + "/"
+    data_output_path = "data/processed_data/" + dataset + "/"
+    # If datasets == "both" then pdb and af2 are concatenated together
+    # else we just take the pdb or af2 data
+    if dataset == "both":
+        destress_data = pd.concat([af2_destress_data, pdb_destress_data]).reset_index(
+            drop=True
+        )
+        drop_cols_all = drop_cols + [
+            "primary_accession",
+            "pdb_id",
+            "organism_scientific_name_pdb",
+            "organism_scientific_name_af2",
+        ]
 
-# Now removing any rows that have missing values
-destress_data = destress_data.dropna(axis=0).reset_index(drop=True)
+    elif dataset == "pdb":
+        destress_data = pdb_destress_data
+        drop_cols_all = drop_cols + [
+            "pdb_id",
+            "organism_scientific_name_pdb",
+        ]
 
-# Calculating number of structures in the data set after removing missing values
-num_structures_missing_removed = destress_data.shape[0]
+    elif dataset == "af2":
+        destress_data = af2_destress_data
+        drop_cols_all = drop_cols + [
+            "primary_accession",
+            "organism_scientific_name_af2",
+        ]
 
-# Calculating how many structures are left after removing those with missing values for the DE-STRESS metrics.
-print(
-    "DE-STRESS ran for "
-    + str(num_structures)
-    + " PDB and AF2 structures in total and after removing missing values there are "
-    + str(num_structures_missing_removed)
-    + " structures remaining in the data set. This means "
-    + str(100 * (round((num_structures_missing_removed / num_structures), 4)))
-    + "% of the protein structures are covered in this data set."
-)
+    # Setting the missing value threshold
+    if dataset == "pdb":
+        missing_val_threshold = 0.2
 
-# Calculating how many structures for PDB and AF2
-num_pdb_structures = destress_data[destress_data["pdb_or_af2"] == "PDB"].reset_index(drop = True).shape[0]
-num_af2_structures = destress_data[destress_data["pdb_or_af2"] == "AF2"].reset_index(drop = True).shape[0]
+    else:
+        missing_val_threshold = 0.05
 
-print("There are " + str(num_pdb_structures) + " PDB structures and " + str(num_af2_structures) + " AF2 structural models.")
+    # Removing features that have missing value prop greater than threshold
+    destress_data, dropped_cols_miss_vals = remove_missing_val_features(
+        data=destress_data,
+        output_path=data_exploration_output_path,
+        threshold=missing_val_threshold,
+    )
 
+    #  Calculating total number of structures that DE-STRESS ran for
+    num_structures = destress_data.shape[0]
 
-print(destress_data.columns.to_list())
+    # Now removing any rows that have missing values
+    destress_data = destress_data.dropna(axis=0).reset_index(drop=True)
 
-print("Features dropped because of missing values")
-print(dropped_cols_miss_vals)
+    # Calculating number of structures in the data set after removing missing values
+    num_structures_missing_removed = destress_data.shape[0]
 
-# 4. Creating new fields and saving labels--------------------------------------------------------------------------------
+    # Calculating how many structures are left after removing those with missing values for the DE-STRESS metrics.
+    print(
+        "DE-STRESS ran for "
+        + str(num_structures)
+        + " PDB and AF2 structures in total and after removing missing values there are "
+        + str(num_structures_missing_removed)
+        + " structures remaining in the data set. This means "
+        + str(100 * (round((num_structures_missing_removed / num_structures), 4)))
+        + "% of the protein structures are covered in this data set."
+    )
 
-# Adding a new field to create a dssp bin
-destress_data["dssp_bin"] = np.select(
-    [
-        destress_data["ss_prop_alpha_helix"].gt(0.5),
-        destress_data["ss_prop_beta_bridge"].gt(0.5),
-        destress_data["ss_prop_beta_strand"].gt(0.5),
-        destress_data["ss_prop_3_10_helix"].gt(0.5),
-        destress_data["ss_prop_pi_helix"].gt(0.5),
-        destress_data["ss_prop_hbonded_turn"].gt(0.5),
-        destress_data["ss_prop_bend"].gt(0.5),
-        destress_data["ss_prop_loop"].gt(0.5),
-    ],
-    ["Mainly alpha helix", "Mainly beta bridge", "Mainly beta strand", "Mainly 3 10 helix", "Mainly pi helix", "Mainly hbond turn", "Mainly bend", "Mainly loop",
-     ],
-    default="Mixed",
-)
+    # Calculating how many structures for PDB and AF2
+    num_pdb_structures = (
+        destress_data[destress_data["pdb_or_af2"] == "PDB"]
+        .reset_index(drop=True)
+        .shape[0]
+    )
+    num_af2_structures = (
+        destress_data[destress_data["pdb_or_af2"] == "AF2"]
+        .reset_index(drop=True)
+        .shape[0]
+    )
 
-# # Adding a new field to create a dssp bin
-# destress_data["isoelectric_point_bin"] = np.select(
-#     [
-#         destress_data["isoelectric_point"].lt(6),
-#         destress_data["isoelectric_point"].ge(6) and destress_data["isoelectric_point"].le(8),
-#         destress_data[destress_data]
-#         destress_data["isoelectric_point"].gt(6),
-#     ],
-#     ["1-5", "6-8", "9-13"],
-#     default="Other",
-# )
+    print(
+        "There are "
+        + str(num_pdb_structures)
+        + " PDB structures and "
+        + str(num_af2_structures)
+        + " AF2 structural models."
+    )
 
-# Defining a column which extracts the uniprot id from the design_name column
-destress_data["uniprot_join_id"] = np.where(destress_data["pdb_or_af2"] == "AF2" , 
-                                            destress_data["design_name"].str.split("-").str[1],
-                                            destress_data["design_name"].str[3:8])
+    # 4. Creating new fields and saving labels--------------------------------------------------------------------------------
 
-# Joining on processed uniprot data af2 by uniprot id
-destress_data_uniprot = destress_data.merge(processed_uniprot_data_af2[["primary_accession", "organism_scientific_name_af2"]], how="left", left_on="uniprot_join_id", right_on = "primary_accession")
-destress_data_uniprot = destress_data_uniprot.merge(processed_uniprot_data_pdb[["pdb_id", "organism_scientific_name_pdb"]], how="left", left_on="uniprot_join_id", right_on = "pdb_id")
+    # Adding a new field to create a dssp bin
+    destress_data["dssp_bin"] = np.select(
+        [
+            destress_data["ss_prop_alpha_helix"].gt(0.5),
+            destress_data["ss_prop_beta_bridge"].gt(0.5),
+            destress_data["ss_prop_beta_strand"].gt(0.5),
+            destress_data["ss_prop_3_10_helix"].gt(0.5),
+            destress_data["ss_prop_pi_helix"].gt(0.5),
+            destress_data["ss_prop_hbonded_turn"].gt(0.5),
+            destress_data["ss_prop_bend"].gt(0.5),
+            destress_data["ss_prop_loop"].gt(0.5),
+        ],
+        [
+            "Mainly alpha helix",
+            "Mainly beta bridge",
+            "Mainly beta strand",
+            "Mainly 3 10 helix",
+            "Mainly pi helix",
+            "Mainly hbond turn",
+            "Mainly bend",
+            "Mainly loop",
+        ],
+        default="Mixed",
+    )
 
-destress_data_uniprot["organism_scientific_name"] = np.where(destress_data_uniprot["pdb_or_af2"] == "AF2",
-                                                             destress_data_uniprot["organism_scientific_name_af2"],
-                                                             destress_data_uniprot["organism_scientific_name_pdb"])
+    # # Adding a new field to create a dssp bin
+    # destress_data["isoelectric_point_bin"] = np.select(
+    #     [
+    #         destress_data["isoelectric_point"].lt(6),
+    #         destress_data["isoelectric_point"].ge(6) and destress_data["isoelectric_point"].le(8),
+    #         destress_data[destress_data]
+    #         destress_data["isoelectric_point"].gt(6),
+    #     ],
+    #     ["1-5", "6-8", "9-13"],
+    #     default="Other",
+    # )
 
-# destress_data_uniprot["organism_scientific_name"] = np.where(destress_data_uniprot["pdb_or_af2"] == "AF2",
-#                                                              destress_data_uniprot["organism_scientific_name_af2"],
-#                                                              "")
+    # Defining a column which extracts the uniprot id from the design_name column
+    destress_data["uniprot_join_id"] = np.where(
+        destress_data["pdb_or_af2"] == "AF2",
+        destress_data["design_name"].str.split("-").str[1],
+        destress_data["design_name"].str[3:8],
+    )
 
-destress_data_uniprot["organism_scientific_name"] = np.where(destress_data_uniprot["organism_scientific_name"].isnull(),
-                                                             "Unknown",
-                                                             destress_data_uniprot["organism_scientific_name"])
+    if dataset == "pdb":
+        destress_data_uniprot = destress_data.merge(
+            processed_uniprot_data_pdb[["pdb_id", "organism_scientific_name_pdb"]],
+            how="left",
+            left_on="uniprot_join_id",
+            right_on="pdb_id",
+        )
+        destress_data_uniprot["organism_scientific_name"] = np.where(
+            destress_data_uniprot["pdb_or_af2"] == "PDB",
+            destress_data_uniprot["organism_scientific_name_pdb"],
+            "",
+        )
+    elif dataset == "af2":
+        destress_data_uniprot = destress_data.merge(
+            processed_uniprot_data_af2[
+                ["primary_accession", "organism_scientific_name_af2"]
+            ],
+            how="left",
+            left_on="uniprot_join_id",
+            right_on="primary_accession",
+        )
+        destress_data_uniprot["organism_scientific_name"] = np.where(
+            destress_data_uniprot["pdb_or_af2"] == "AF2",
+            destress_data_uniprot["organism_scientific_name_af2"],
+            "",
+        )
+    else:
+        destress_data_uniprot = destress_data.merge(
+            processed_uniprot_data_pdb[["pdb_id", "organism_scientific_name_pdb"]],
+            how="left",
+            left_on="uniprot_join_id",
+            right_on="pdb_id",
+        )
+        destress_data_uniprot = destress_data_uniprot.merge(
+            processed_uniprot_data_af2[
+                ["primary_accession", "organism_scientific_name_af2"]
+            ],
+            how="left",
+            left_on="uniprot_join_id",
+            right_on="primary_accession",
+        )
 
-# Adding a new field to create an organism group
-destress_data_uniprot["organism_group"] = np.select(
-    [
-        destress_data_uniprot["organism_scientific_name"].isin(organism_animal_list),
-        destress_data_uniprot["organism_scientific_name"].isin(organism_fungi_list),
-        destress_data_uniprot["organism_scientific_name"].isin(organism_bacteria_list),
-        destress_data_uniprot["organism_scientific_name"].isin(organism_plant_list),
-        destress_data_uniprot["organism_scientific_name"].isin(organism_other_list)
-    ],
-    ["Animal", "Fungi", "Bacteria", "Plant", "Other",
-     ],
-    default="Unknown",
-)
+        destress_data_uniprot["organism_scientific_name"] = np.where(
+            destress_data_uniprot["pdb_or_af2"] == "AF2",
+            destress_data_uniprot["organism_scientific_name_af2"],
+            destress_data_uniprot["organism_scientific_name_pdb"],
+        )
 
-# Normalising energy field values by the number of residues
-destress_data_uniprot.loc[:, energy_field_list,] = destress_data_uniprot.loc[
-    :,
-    energy_field_list,
-].div(destress_data_uniprot["num_residues"], axis=0)
+    # Adding a new field to create an organism group
+    destress_data_uniprot["organism_group"] = np.select(
+        [
+            destress_data_uniprot["organism_scientific_name"].isin(
+                organism_animal_list
+            ),
+            destress_data_uniprot["organism_scientific_name"].isin(organism_fungi_list),
+            destress_data_uniprot["organism_scientific_name"].isin(
+                organism_bacteria_list
+            ),
+            destress_data_uniprot["organism_scientific_name"].isin(organism_plant_list),
+            destress_data_uniprot["organism_scientific_name"].isin(organism_other_list),
+        ],
+        [
+            "Animal",
+            "Fungi",
+            "Bacteria",
+            "Plant",
+            "Other",
+        ],
+        default="Unknown",
+    )
 
-# Saving labels
-labels = save_destress_labels(data=destress_data_uniprot, labels=dim_red_labels, output_path=data_output_path, file_path="labels")
+    # Normalising energy field values by the number of residues
+    destress_data_uniprot.loc[
+        :,
+        energy_field_list,
+    ] = destress_data_uniprot.loc[
+        :,
+        energy_field_list,
+    ].div(destress_data_uniprot["num_residues"], axis=0)
 
-# 5. Scaling features--------------------------------------------------------------
+    # Saving labels
+    labels_df = save_destress_labels(
+        data=destress_data_uniprot,
+        labels=labels,
+        output_path=data_output_path,
+        file_path="labels",
+    )
 
-destress_columns_full = destress_data_uniprot.columns.to_list()
+    # 5. Selecting numeric features and filtering----------------------------------------
 
-# Dropping columns that have been defined manually 
-destress_data_uniprot = destress_data_uniprot.drop(drop_cols, axis=1)
+    destress_columns_full = destress_data_uniprot.columns.to_list()
 
-# Dropping columns that are not numeric
-destress_data_num = destress_data_uniprot.select_dtypes([np.number]).reset_index(drop=True)
+    # Dropping columns that have been defined manually
+    destress_data_uniprot = destress_data_uniprot.drop(drop_cols_all, axis=1)
 
-# Printing columns that are dropped because they are not numeric
-destress_columns_num = destress_data_num.columns.to_list()
-dropped_cols_non_num = set(destress_columns_full) - set(destress_columns_num)
+    # Dropping columns that are not numeric
+    destress_data_num = destress_data_uniprot.select_dtypes([np.number]).reset_index(
+        drop=True
+    )
 
-# Calculating mean and std of features
-features_mean_std(data=destress_data_num, output_path=data_exploration_output_path, id="destress_data_num")
+    # Printing columns that are dropped because they are not numeric
+    destress_columns_num = destress_data_num.columns.to_list()
+    dropped_cols_non_num = set(destress_columns_full) - set(destress_columns_num)
 
-if scaling_method == "minmax":
+    # Calculating mean and std of features
+    features_mean_std(
+        data=destress_data_num,
+        output_path=data_exploration_output_path,
+        id="destress_data_num",
+    )
 
-    # Scaling the data with min max scaler
-    scaler = MinMaxScaler().fit(destress_data_num)
+    (
+        destress_data_constant_features_removed,
+        constant_features,
+    ) = remove_constant_features(
+        data=destress_data_num,
+        constant_features_threshold=constant_features_threshold,
+        output_path=data_exploration_output_path,
+    )
 
-elif scaling_method == "standard":
+    print("Features dropped because they're constant")
+    print(constant_features)
 
-    # Scaling the data with standard scaler scaler
-    scaler = StandardScaler().fit(destress_data_num)
+    # plot_hists_all_columns(
+    #     data=destress_data_constant_features_removed,
+    #     column_list=destress_data_constant_features_removed.columns.to_list(),
+    #     output_path=data_exploration_output_path,
+    #     file_name="/pre_scaling_hist_",
+    # )
 
-elif scaling_method == "robust":
+    # 6. Removing outliers-----------------------------------------------------------------
 
-    # Scaling the data with robust scaler
-    scaler = RobustScaler().fit(destress_data_num)
+    # Looping through different contamination factors for the isolation forest
+    # and scaling mthods
+    for iso_for_contamination in iso_for_contamination_list:
+        data_exploration_outliers_output_path = (
+            data_exploration_output_path + "iso_for_" + str(iso_for_contamination) + "/"
+        )
+        data_outliers_output_path = (
+            data_output_path + "iso_for_" + str(iso_for_contamination) + "/"
+        )
+        for scaling_method in scaling_method_list:
+            data_exploration_scaled_output_path = (
+                data_exploration_outliers_output_path + scaling_method + "/"
+            )
+            data_scaled_output_path = data_outliers_output_path + scaling_method + "/"
 
-# Transforming the data
-destress_data_scaled = pd.DataFrame(
-    scaler.transform(destress_data_num), columns=destress_data_num.columns
-)
+            print(data_scaled_output_path)
 
-# for col in destress_data_num.columns.to_list():
+            if iso_for_contamination == 0.0:
+                destress_data_outliers_removed = destress_data_constant_features_removed
+                labels_outliers_removed = labels_df
 
-#     sns.histplot(data=destress_data_num, x=col)
-#     plt.savefig(data_exploration_output_path + "/before_scaling/hist_" + col + ".png")
-#     plt.close()
+            else:
+                (
+                    destress_data_outliers_removed,
+                    labels_outliers_removed,
+                ) = outlier_detection_iso_for(
+                    data=destress_data_constant_features_removed,
+                    labels=labels_df,
+                    contamination=iso_for_contamination,
+                    n_estimators=100,
+                    max_features=2,
+                    output_path=data_exploration_outliers_output_path,
+                    file_name="iso_for_outliers",
+                )
 
-# for col in destress_data_scaled.columns.to_list():
+            destress_data_outliers_removed.to_csv(
+                data_outliers_output_path
+                + "processed_destress_data_outliers_removed.csv",
+                index=False,
+            )
+            labels_outliers_removed.to_csv(
+                data_outliers_output_path + "labels_outliers_removed.csv",
+                index=False,
+            )
 
-#     sns.histplot(data=destress_data_scaled, x=col)
-#     plt.savefig(data_exploration_output_path + "/after_minmax_scaling/hist_" + col + ".png")
-#     plt.close()
+            # plot_hists_all_columns(
+            #     data=destress_data_outliers_removed,
+            #     column_list=destress_data_outliers_removed.columns.to_list(),
+            #     output_path=data_exploration_outliers_output_path,
+            #     file_name="/outliers_removed_hist_",
+            # )
 
-# Calculating mean and std of features
-features_mean_std(data=destress_data_scaled, output_path=data_exploration_output_path, id="destress_data_scaled")
+            # 7. Scaling features--------------------------------------------------------------------
 
+            if scaling_method == "minmax":
+                # Scaling the data with min max scaler
+                scaler = MinMaxScaler().fit(destress_data_outliers_removed)
 
-# 5. Filtering features-----------------------------------------------------------------
+            elif scaling_method == "standard":
+                # Scaling the data with standard scaler scaler
+                scaler = StandardScaler().fit(destress_data_outliers_removed)
 
-destress_data_filt, drop_cols_low_std, drop_cols_high_corr= filter_features(data=destress_data_scaled, 
-                                                                            low_std_threshold=low_std_threshold,
-                                                                            corr_coeff_threshold=corr_coeff_threshold)
+            elif scaling_method == "robust":
+                # Scaling the data with robust scaler
+                scaler = RobustScaler().fit(destress_data_outliers_removed)
 
-print(destress_data_filt)
-print(destress_data_filt.columns.to_list())
+            # Transforming the data
+            destress_data_scaled = pd.DataFrame(
+                scaler.transform(destress_data_outliers_removed),
+                columns=destress_data_outliers_removed.columns,
+            )
 
-print("Features dropped because of low std")
-print(drop_cols_low_std)
-print("Features dropped because of high correlation")
-print(drop_cols_high_corr)
+            # Calculating mean and std of features
+            features_mean_std(
+                data=destress_data_scaled,
+                output_path=data_exploration_scaled_output_path,
+                id="destress_data_scaled",
+            )
 
+            (
+                destress_data_remove_high_corr,
+                drop_cols_high_corr,
+            ) = remove_highest_correlators(
+                data=destress_data_scaled,
+                corr_coeff_threshold=corr_coeff_threshold,
+                output_path=data_exploration_scaled_output_path,
+            )
 
-# # Removing columns 
-# destress_data.drop(
-#     [
-#     "primary_accession",
-#     "uniProtkbId",
-#     # "protein_name",
-#     "gene_name",
-#     ],
-#     axis=1,
-#     inplace=True,
-# )
+            print("Features dropped because of high correlation")
+            print(drop_cols_high_corr)
 
-# destress_data["uniprot_id"] = np.where(destress_data["pdb_or_af2"] == "PDB", "PDB", destress_data["uniprot_id"])
-# destress_data["organism_scientific_name"] = np.where(destress_data["pdb_or_af2"] == "PDB", "PDB", destress_data["organism_scientific_name"])
-# destress_data["protein_name"] = np.where(destress_data["pdb_or_af2"] == "PDB", "PDB", destress_data["protein_name"])
+            # plot_hists_all_columns(
+            #     data=destress_data_remove_high_corr,
+            #     column_list=destress_data_remove_high_corr.columns.to_list(),
+            #     output_path=data_exploration_scaled_output_path,
+            #     file_name="/post_scaling_hist_",
+            # )
 
-# # Removing any rows that have NAs in them
-# destress_data = destress_data.dropna(axis=0).reset_index(drop=True)
+            destress_data_remove_high_corr.to_csv(
+                data_scaled_output_path + "processed_destress_data_scaled.csv",
+                index=False,
+            )
 
-destress_data_filt.to_csv(data_output_path + "processed_destress_data.csv", index=False)
-
-
-
-
-
-
+            labels_outliers_removed.to_csv(
+                data_scaled_output_path + "labels.csv", index=False
+            )
