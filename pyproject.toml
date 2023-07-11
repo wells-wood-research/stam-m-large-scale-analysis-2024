@@ -1,0 +1,21 @@
+[tool.poetry]
+name = "illuminating-protein-structural-universe"
+version = "0.1.0"
+description = ""
+authors = ["MichaelJamesStam <michaelstam@protonmail.com>"]
+
+[tool.poetry.dependencies]
+python = "3.9.17"
+numpy = "^1.25.0"
+pandas = "^2.0.2"
+scikit-learn = "^1.2.2"
+matplotlib = "^3.7.1"
+seaborn = "^0.12.2"
+beautifulsoup4 = "^4.12.2"
+plotly = "^5.15.0"
+
+[tool.poetry.dev-dependencies]
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
