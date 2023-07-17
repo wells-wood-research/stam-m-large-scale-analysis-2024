@@ -10,12 +10,12 @@ from sklearn.preprocessing import MinMaxScaler, StandardScaler, RobustScaler
 
 # Defining the data set list
 # dataset_list = ["pdb", "af2", "both"]
-dataset_list = ["af2"]
+dataset_list = ["both"]
 
 # Defining a list of values for isolation forest
 # outlier detection contamination factor
-iso_for_contamination_list = [0.00, 0.01, 0.02, 0.03, 0.04, 0.05]
-# iso_for_contamination_list = [0.0]
+# iso_for_contamination_list = [0.00, 0.01, 0.02, 0.03, 0.04, 0.05]
+iso_for_contamination_list = [0.0]
 
 # Defining the scaling methods list
 scaling_method_list = ["standard", "robust", "minmax"]
@@ -23,6 +23,9 @@ scaling_method_list = ["standard", "robust", "minmax"]
 # Defining file paths for raw data
 raw_af2_destress_data_path = "data/raw_data/af2/destress_data_af2.csv"
 raw_pdb_destress_data_path = "data/raw_data/pdb/destress_data_pdb.csv"
+
+# Defining file path for the de novo protein labels
+pdb_denovo_protein_labels_path = "data/raw_data/pdb/denovo_pdb_ids.csv"
 
 # Defining file paths for the processed uniprot data sets
 processed_uniprot_data_af2_path = (
@@ -160,6 +163,7 @@ labels = [
     "aggrescan3d_avg_value",
     "organism_scientific_name",
     "organism_group",
+    "designed_native",
 ]
 
 # Defining a threshold for the spearman correlation coeffient
@@ -181,12 +185,19 @@ raw_pdb_destress_data = pd.read_csv(raw_pdb_destress_data_path)
 processed_uniprot_data_af2 = pd.read_csv(processed_uniprot_data_af2_path)
 processed_uniprot_data_pdb = pd.read_csv(processed_uniprot_data_pdb_path)
 
+# Renaming data sets
 af2_destress_data = raw_af2_destress_data
 pdb_destress_data = raw_pdb_destress_data
 
+# Creating a pdb or af2 flag
 af2_destress_data["pdb_or_af2"] = "AF2"
 pdb_destress_data["pdb_or_af2"] = "PDB"
 
+# Reading in pdb denovo labels
+pdb_denovo_protein_labels = pd.read_csv(pdb_denovo_protein_labels_path)
+
+# Lowering the case of the pdb_ids for the de novo design data
+pdb_denovo_protein_labels["pdb_id"] = pdb_denovo_protein_labels["pdb_id"].str.lower()
 
 # 3. Joining datasets and removing missing values-----------------------------------------------------------------------------
 
@@ -290,14 +301,14 @@ for dataset in dataset_list:
             destress_data["ss_prop_loop"].gt(0.5),
         ],
         [
-            "Mainly alpha helix",
-            "Mainly beta bridge",
-            "Mainly beta strand",
-            "Mainly 3 10 helix",
-            "Mainly pi helix",
-            "Mainly hbond turn",
-            "Mainly bend",
-            "Mainly loop",
+            "Alpha Helix",
+            "Beta Bridge",
+            "Beta Strand",
+            "3 10 Helix",
+            "Pi Helix",
+            "Hbond Turn",
+            "Bend",
+            "Loop",
         ],
         default="Mixed",
     )
@@ -314,15 +325,50 @@ for dataset in dataset_list:
     #     default="Other",
     # )
 
+    if dataset == "pdb":
+        #  Denovo pdb join id
+        destress_data["pdb_denovo_join_id"] = destress_data["design_name"].str.replace(
+            "pdb", ""
+        )
+
+        # Joining these data sets together
+        destress_data_denovo_labels = destress_data.merge(
+            pdb_denovo_protein_labels[["pdb_id", "category"]],
+            how="left",
+            left_on="pdb_denovo_join_id",
+            right_on="pdb_id",
+        ).reset_index(drop=True)
+
+        # Replacing NaNs in the category column with "native"
+        destress_data_denovo_labels["category"] = destress_data_denovo_labels[
+            "category"
+        ].fillna("Native")
+
+        # Creating a new designed flag that combines two categories
+        destress_data_denovo_labels["designed_native"] = np.where(
+            destress_data_denovo_labels["category"] == "Native",
+            "Native",
+            "Designed",
+        )
+
+        # Dropping join id
+        destress_data_denovo_labels.drop(
+            ["pdb_denovo_join_id", "category", "pdb_id"], axis=1, inplace=True
+        )
+
+    else:
+        destress_data_denovo_labels = destress_data
+        destress_data_denovo_labels["designed_native"] = "AF2"
+
     # Defining a column which extracts the uniprot id from the design_name column
-    destress_data["uniprot_join_id"] = np.where(
-        destress_data["pdb_or_af2"] == "AF2",
-        destress_data["design_name"].str.split("-").str[1],
-        destress_data["design_name"].str[3:8],
+    destress_data_denovo_labels["uniprot_join_id"] = np.where(
+        destress_data_denovo_labels["pdb_or_af2"] == "AF2",
+        destress_data_denovo_labels["design_name"].str.split("-").str[1],
+        destress_data_denovo_labels["design_name"].str[3:8],
     )
 
     if dataset == "pdb":
-        destress_data_uniprot = destress_data.merge(
+        destress_data_uniprot = destress_data_denovo_labels.merge(
             processed_uniprot_data_pdb[["pdb_id", "organism_scientific_name_pdb"]],
             how="left",
             left_on="uniprot_join_id",
@@ -334,7 +380,7 @@ for dataset in dataset_list:
             "",
         )
     elif dataset == "af2":
-        destress_data_uniprot = destress_data.merge(
+        destress_data_uniprot = destress_data_denovo_labels.merge(
             processed_uniprot_data_af2[
                 ["primary_accession", "organism_scientific_name_af2"]
             ],
@@ -348,7 +394,7 @@ for dataset in dataset_list:
             "",
         )
     else:
-        destress_data_uniprot = destress_data.merge(
+        destress_data_uniprot = destress_data_denovo_labels.merge(
             processed_uniprot_data_pdb[["pdb_id", "organism_scientific_name_pdb"]],
             how="left",
             left_on="uniprot_join_id",

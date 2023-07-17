@@ -11,19 +11,39 @@ dataset_list = ["af2"]
 
 # Defining a list of values for isolation forest
 # outlier detection contamination factor
-iso_for_contamination_list = [0.03, 0.04, 0.05]
+iso_for_contamination_list = [0.0]
 
 # Defining the scaling methods list
-scaling_method_list = ["standard", "robust", "minmax"]
+# scaling_method_list = ["standard", "robust", "minmax"]
+scaling_method_list = ["minmax"]
 
 # Setting random seed
 np.random.seed(42)
 
 # Defining number of principal components
-n_components = 20
+n_components = 15
+
+
+# Defining list of dim ids
+dim_ids_list = []
+for i in range(0, n_components):
+    dim_ids_list.append("dim" + str(i))
+
 
 # Defining hiver data for plotly
-hover_data = ["design_name", "dim0", "dim1", "dim2"]
+hover_data = ["design_name", "dim0", "dim1"]
+
+# Defining a list of formatted versions of the labels
+labels_formatted = [
+    # "PDB or AF2",
+    "Isoelectric Point",
+    "Packing Density",
+    "Hydrophobic Fitness",
+    "Aggrescan3D Average Value",
+    "Designed or Native",
+    "Secondary Structure",
+    # "Organism",
+]
 
 # 2. Looping through the different data sets------------------------------------------------------
 
@@ -91,51 +111,175 @@ for dataset in dataset_list:
             # 5. Plotting 2d spaces---------------------------------------------------------------------
 
             # Setting theme for plots
-            sns.set_theme(style="darkgrid")
+            # sns.set_theme(style="darkgrid")
+            sns.set_style("ticks")
 
-            # Looping through the different labels that we're interested in
-            for i in range(0, len(labels_df.columns.to_list())):
-                var = labels_df.columns.to_list()[i]
+            # plot_var_list = [
+            #     # "pdb_or_af2",
+            #     "isoelectric_point",
+            #     "packing_density",
+            #     "hydrophobic_fitness",
+            #     "aggrescan3d_avg_value",
+            #     "designed_native",
+            #     # "organism_scientific_name",
+            # ]
 
-                if var != "design_name":
-                    if var in [
-                        "isoelectric_point",
-                        "charge",
-                        "rosetta_total",
-                        "packing_density",
-                        "hydrophobic_fitness",
-                        "aggrescan3d_avg_value",
-                        "organism_scientific_name",
-                    ]:
-                        cmap = sns.color_palette("viridis", as_cmap=True)
+            # # Looping through the different labels that we're interested in
+            # for i in range(0, len(plot_var_list)):
+            #     var = plot_var_list[i]
 
-                    else:
-                        cmap = sns.color_palette("tab10")
+            #     if var in [
+            #         "isoelectric_point",
+            #         "packing_density",
+            #         "hydrophobic_fitness",
+            #         "aggrescan3d_avg_value",
+            #     ]:
+            #         cmap = sns.color_palette("viridis", as_cmap=True)
 
-                    #         plot_pca_plotly(
-                    #             pca_data=pca_transformed_data,
-                    #             x="dim0",
-                    #             y="dim1",
-                    #             color=var,
-                    #             hover_data=hover_data,
-                    #             opacity=0.8,
-                    #             size=5,
-                    #             output_path=pca_analysis_path,
-                    #             file_name="pca_embedding_" + var + ".html",
-                    #         )
+            #     else:
+            #         cmap = sns.color_palette("tab10")
 
-                    if var != "organism_scientific_name":
-                        plot_latent_space_2d(
-                            data=pca_transformed_data,
-                            x="dim0",
-                            y="dim1",
-                            axes_prefix="PCA Dim",
-                            legend_title=var,
-                            hue=var,
-                            # style=var,
-                            alpha=0.8,
-                            s=20,
-                            palette=cmap,
-                            output_path=pca_analysis_path,
-                            file_name="pca_embedding_" + var,
-                        )
+            #     plot_pca_plotly(
+            #         pca_data=pca_transformed_data.sort_values(by=var, ascending=False),
+            #         x="dim0",
+            #         y="dim1",
+            #         color=var,
+            #         hover_data=hover_data,
+            #         legend_title=labels_formatted[i],
+            #         opacity=0.9,
+            #         size=15,
+            #         output_path=pca_analysis_path,
+            #         file_name="pca_embedding_" + var + ".html",
+            #     )
+
+            #     plot_latent_space_2d(
+            #         data=pca_transformed_data.sort_values(by=var, ascending=False),
+            #         x="dim0",
+            #         y="dim1",
+            #         axes_prefix="PCA Dim",
+            #         legend_title=labels_formatted[i],
+            #         hue=var,
+            #         # style=var,
+            #         alpha=0.8,
+            #         s=30,
+            #         palette=cmap,
+            #         output_path=pca_analysis_path,
+            #         file_name="pca_embedding_" + var,
+            #     )
+
+            org_list_plant = [
+                "Arabidopsis thaliana",
+                "Glycine max",
+                "Oryza sativa",
+                "Zea mays",
+            ]
+
+            org_list_bacteria = [
+                "Escherichia coli",
+                "Salmonella typhimurium",
+                "Mycobacterium tuberculosis",
+                "Mycobacterium leprae",
+                # "Mycobacterium ulcerans",
+                # "Neisseria gonorrhoeae",
+                # "Staphylococcus aureus",
+                # "Streptococcus pneumoniae",
+            ]
+
+            org_list_animal = [
+                "Homo sapiens",
+                "Mus musculus",
+                "Rattus norvegicus",
+            ]
+
+            org_list_funghi = [
+                "Candida albicans",
+                "Saccharomyces cerevisiae",
+                "Schizosaccharomyces pombe",
+                "Madurella mycetomatis",
+            ]
+
+            spectral_plot(
+                pca_data=pca_transformed_data.sort_values(
+                    by="organism_scientific_name", ascending=True
+                ),
+                group_var="organism_scientific_name",
+                value_var_list=dim_ids_list,
+                filt_list=org_list_plant,
+                title="Plant",
+                legend_title="",
+                output_path=pca_analysis_path,
+                file_name="spectral_plot_plant",
+            )
+
+            spectral_plot(
+                pca_data=pca_transformed_data.sort_values(
+                    by="organism_scientific_name", ascending=True
+                ),
+                group_var="organism_scientific_name",
+                value_var_list=dim_ids_list,
+                filt_list=org_list_bacteria,
+                title="Bacteria",
+                legend_title="",
+                output_path=pca_analysis_path,
+                file_name="spectral_plot_bacteria",
+            )
+
+            spectral_plot(
+                pca_data=pca_transformed_data.sort_values(
+                    by="organism_scientific_name", ascending=True
+                ),
+                group_var="organism_scientific_name",
+                value_var_list=dim_ids_list,
+                filt_list=org_list_animal,
+                title="Animal",
+                legend_title="",
+                output_path=pca_analysis_path,
+                file_name="spectral_plot_animal",
+            )
+
+            spectral_plot(
+                pca_data=pca_transformed_data.sort_values(
+                    by="organism_scientific_name", ascending=True
+                ),
+                group_var="organism_scientific_name",
+                value_var_list=dim_ids_list,
+                filt_list=org_list_funghi,
+                title="Funghi",
+                legend_title="",
+                output_path=pca_analysis_path,
+                file_name="spectral_plot_funghi",
+            )
+
+            data_filtered = pca_transformed_data[
+                ~pca_transformed_data["dssp_bin"]
+                .isin(["Bend", "Hbond Turn", "3 10 Helix"])
+                .reset_index(drop=True)
+            ]
+
+            # plot_pca_plotly(
+            #     pca_data=data_filtered.sort_values(by="dssp_bin", ascending=False),
+            #     x="dim0",
+            #     y="dim1",
+            #     color="dssp_bin",
+            #     hover_data=hover_data,
+            #     legend_title=labels_formatted[4],
+            #     opacity=0.8,
+            #     size=15,
+            #     output_path=pca_analysis_path,
+            #     file_name="pca_embedding_" + "dssp_bin" + ".html",
+            # )
+
+            # plot_latent_space_2d(
+            #     data=data_filtered.sort_values(by="dssp_bin", ascending=False),
+            #     x="dim0",
+            #     y="dim1",
+            #     axes_prefix="PCA Dim",
+            #     legend_title=labels_formatted[5],
+            #     hue="dssp_bin",
+            #     # style=var,
+            #     alpha=0.8,
+            #     s=20,
+            #     palette=sns.color_palette("tab10"),
+            #     output_path=pca_analysis_path,
+            #     file_name="pca_embedding_" + "dssp_bin",
+            # )

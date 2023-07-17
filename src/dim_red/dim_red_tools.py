@@ -146,21 +146,40 @@ def plot_latent_space_2d(
         palette=palette,
         s=s,
         legend=True,
+        linewidth=0.2,
+        edgecolor="black",
     )
     plt.xlabel(axes_prefix + " " + x_id)
     plt.ylabel(axes_prefix + " " + y_id)
-    sns.move_legend(plot, "upper left", bbox_to_anchor=(1, 1), frameon=False)
-    # plot.get_legend().set_title(legend_title)
+    sns.move_legend(
+        plot,
+        "upper left",
+        bbox_to_anchor=(1, 1),
+        frameon=False,
+    )
+    # sns.move_legend(
+    #     plot, "lower center", bbox_to_anchor=(0.5, -0.35), frameon=False, ncols=5
+    # )
+    plot.get_legend().set_title(legend_title)
     plt.savefig(
         output_path + file_name + x_id + y_id + ".png",
         bbox_inches="tight",
-        dpi=300,
+        dpi=600,
     )
     plt.close()
 
 
 def plot_pca_plotly(
-    pca_data, x, y, color, hover_data, opacity, size, output_path, file_name
+    pca_data,
+    x,
+    y,
+    color,
+    hover_data,
+    legend_title,
+    opacity,
+    size,
+    output_path,
+    file_name,
 ):
     fig = px.scatter(
         pca_data,
@@ -171,11 +190,16 @@ def plot_pca_plotly(
         color_discrete_sequence=px.colors.qualitative.G10,
         hover_data=hover_data,
         opacity=opacity,
+        labels={
+            "dim0": "Principal Component 1",
+            "dim1": "Principal Component 2",
+        },
     )
     fig.update_traces(
-        marker=dict(size=size, line=dict(width=2)),
+        marker=dict(size=size, line=dict(width=0.8)),
         selector=dict(mode="markers"),
     )
+    fig.update_layout(legend_title_text=legend_title)
     fig.write_html(output_path + file_name)
 
 
@@ -197,3 +221,80 @@ def distance_to_reference(data, dim_columns, feature, distance_metric, output_pa
     )
 
     return distances_df
+
+
+def spectral_plot(
+    pca_data,
+    group_var,
+    value_var_list,
+    filt_list,
+    title,
+    legend_title,
+    output_path,
+    file_name,
+):
+    # Changing format of data from wide to long
+    pca_data_long = pca_data.melt(
+        id_vars=[group_var],
+        value_vars=value_var_list,
+        var_name="dim_id",
+        value_name="dim_value",
+    )
+
+    # Extracting the id of the pca dimension
+    pca_data_long["dim_id"] = pca_data_long["dim_id"].str.replace("dim", "")
+    pca_data_filt = pca_data_long[
+        pca_data_long["organism_scientific_name"].isin(filt_list)
+    ].reset_index(drop=True)
+
+    sns.set_style("ticks")
+    sns.color_palette("tab10")
+
+    # Plot the pca spectre for the different sequences
+    plot = sns.lineplot(
+        x="dim_id",
+        y="dim_value",
+        hue=group_var,
+        # errorbar="sd",
+        legend="full",
+        data=pca_data_filt,
+        linewidth=4,
+        # alpha=0.9,
+    )
+    # ax.legend(
+    #     loc="lower center",
+    #     bbox_to_anchor=(0.5, -0.3),
+    #     ncol=1,
+    # )
+
+    # sns.move_legend(
+    #     plot,
+    #     "upper left",
+    #     bbox_to_anchor=(1, 1),
+    #     frameon=False,
+    #     fontsize=14,
+    #     title=legend_title,
+    # )
+    # plot.get_legend().set_title(legend_title)
+    # plt.legend(title=legend_title, fontsize="20", title_fontsize="14")
+    sns.move_legend(
+        plot,
+        "lower center",
+        bbox_to_anchor=(0.5, -0.38),
+        frameon=False,
+        ncols=2,
+        fontsize=14,
+        title=legend_title,
+    )
+    plt.xlabel("Principal Component ID", fontsize=14)
+    plt.ylabel("Principal Component Value", fontsize=14)
+    plt.title(title, fontsize=16)
+    plt.xticks(fontsize=14)
+    plt.yticks(fontsize=14)
+
+    plt.savefig(
+        output_path + file_name + ".png",
+        bbox_inches="tight",
+        dpi=600,
+    )
+    plt.close()

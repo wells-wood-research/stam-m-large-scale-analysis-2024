@@ -14,12 +14,12 @@ from organism_phylo_tree_tools import *
 # 1. Defining variables----------------------------------------------------------------------------
 
 # Defining the data set list
-dataset_list = ["pdb"]
+dataset_list = ["af2"]
 
 # Defining a list of values for isolation forest
 # outlier detection contamination factor
-iso_for_contamination_list = [0.0, 0.01, 0.02, 0.03, 0.04, 0.05]
-# iso_for_contamination_list = [0.0]
+# iso_for_contamination_list = [0.0, 0.01, 0.02, 0.03, 0.04, 0.05]
+iso_for_contamination_list = [0.0]
 
 # Defining the scaling methods list
 scaling_method_list = ["standard", "robust", "minmax"]
@@ -97,26 +97,33 @@ for dataset in dataset_list:
                 ["organism_scientific_name", "organism_group"], as_index=False
             )[dim_columns].mean()
 
+            pca_transformed_data_avg_filt = pca_transformed_data_avg[
+                pca_transformed_data_avg["organism_group"] != "Other"
+            ]
+
             plot_organism_groups(
-                data=pca_transformed_data_avg,
+                data=pca_transformed_data_avg_filt,
                 output_path=org_phylo_tree_analysis_path,
-                title="Dataset - "
-                + dataset
-                + ", scaling method - "
-                + scaling_method
-                + ", outlier percentage - "
-                + str(iso_for_contamination),
+                title="",
+                legend_title="Organism Group",
+                # title="Dataset - "
+                # + dataset
+                # + ", scaling method - "
+                # + scaling_method
+                # + ", outlier percentage - "
+                # + str(iso_for_contamination),
             )
 
             plot_organism_groups_plotly(
-                data=pca_transformed_data_avg,
+                data=pca_transformed_data_avg_filt,
                 output_path=org_phylo_tree_analysis_path,
-                title="Dataset - "
-                + dataset
-                + ", scaling method - "
-                + scaling_method
-                + ", outlier percentage - "
-                + str(iso_for_contamination),
+                title="",
+                # title="Dataset - "
+                # + dataset
+                # + ", scaling method - "
+                # + scaling_method
+                # + ", outlier percentage - "
+                # + str(iso_for_contamination),
             )
 
             distances_20d_all = distance_to_reference(
@@ -137,7 +144,7 @@ for dataset in dataset_list:
 
             model_fitted = model.fit(distances_20d_all)
 
-            plt.figure(figsize=(18, 10))
+            plt.figure(figsize=(16, 8))
             # plt.title("Hierarchical Clustering Dendrogram")
             # plot the top three levels of the dendrogram
             plot_dendrogram(
@@ -145,7 +152,9 @@ for dataset in dataset_list:
                 truncate_mode=None,
                 labels=distances_20d_all.columns.tolist(),
                 orientation="left",
+                leaf_font_size=10,
             )
+            plt.xticks(fontsize=11)
             plt.savefig(
                 org_phylo_tree_analysis_path
                 + "pca_hierarchical_clustering_dendogram.png",

@@ -56,7 +56,7 @@ def plot_dendrogram(model, **kwargs):
     dendrogram(linkage_matrix, **kwargs)
 
 
-def plot_organism_groups(data, output_path, title):
+def plot_organism_groups(data, output_path, title, legend_title):
     sns.color_palette("tab10")
 
     # PCA 2d scatter plot
@@ -74,7 +74,7 @@ def plot_organism_groups(data, output_path, title):
     plt.ylabel("Principal Component 2")
     plt.title(title)
     sns.move_legend(plot, "upper left", bbox_to_anchor=(1, 1), frameon=False)
-    # plot.get_legend().set_title(legend_title)
+    plot.get_legend().set_title(legend_title)
     plt.savefig(
         output_path + "avg_pc1_vs_pc2_organism.png",
         bbox_inches="tight",
