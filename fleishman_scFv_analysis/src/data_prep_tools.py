@@ -14,6 +14,60 @@ import pickle
 # 1. Defining helper functions---------------------------------------------------
 
 
+# Defining a function to process the DE-STRESS data
+def process_destress_data(
+    data, energy_field_list, drop_cols, data_exploration_path, mean_std_id
+):
+    features_data = data
+
+    # Extracting the design name
+    features_data["design_name"] = features_data["design_name"].str.split("_").str[0]
+
+    # Removing 4m53 design
+    features_data = features_data[features_data["design_name"] != "4m53"]
+
+    # Sorting the values by design name
+    features_data = features_data.sort_values("design_name").reset_index(drop=True)
+
+    # Extracting design name so we can join it back on later
+    design_name_df = features_data["design_name"]
+
+    # Normalising energy field values by the number of residues
+    features_data.loc[
+        :,
+        energy_field_list,
+    ] = features_data.loc[
+        :,
+        energy_field_list,
+    ].div(features_data["num_residues"], axis=0)
+
+    features_data_columns = features_data.columns.to_list()
+
+    # Dropping columns that have been defined manually
+    features_data_filt = features_data.drop(drop_cols, axis=1)
+
+    # Dropping columns that are not numeric
+    features_data_num = features_data_filt.select_dtypes([np.number]).reset_index(
+        drop=True
+    )
+
+    # Printing columns that are dropped because they are not numeric
+    destress_columns_num = features_data_num.columns.to_list()
+    dropped_cols_non_num = set(features_data_columns) - set(destress_columns_num)
+
+    print("Dropping non numeric columns and columns specified in drop cols")
+    print(dropped_cols_non_num)
+
+    # Calculating mean and std of features
+    features_mean_std(
+        data=features_data_num,
+        output_path=data_exploration_path,
+        id=mean_std_id,
+    )
+
+    return features_data_num, design_name_df
+
+
 # Defining a function to compute mean and std of features
 def features_mean_std(data, output_path, id):
     data_std = data.std().sort_values(ascending=False)

@@ -4,7 +4,12 @@
 # 0. Importing packages------------------------------------------------------------------------
 import numpy as np
 import pandas as pd
-from sklearn.preprocessing import MinMaxScaler, RobustScaler, StandardScaler
+from sklearn.preprocessing import (
+    MinMaxScaler,
+    RobustScaler,
+    StandardScaler,
+    LabelBinarizer,
+)
 from data_prep_tools import *
 
 # 1. Defining variables------------------------------------------------------------------------
@@ -16,6 +21,11 @@ predictor_data_path = (
 
 # Setting the file path for the features (DE-STRESS metrics)
 features_data_path = "fleishman_scFv_analysis/data/raw_data/fleishman_destress_data.csv"
+
+# Setting the file path for the PDB features (DE-STRESS metrics)
+pdb_features_data_path = (
+    "fleishman_scFv_analysis/data/raw_data/pdb_destress_data_relaxed.csv"
+)
 
 # Setting the data output path
 processed_data_path = "fleishman_scFv_analysis/data/processed_data/"
@@ -77,6 +87,9 @@ drop_cols = [
 # Defining the scaling methods list
 scaling_method_list = ["standard", "robust", "minmax"]
 
+# Defining a composition metrics included flag
+comp_flag_list = ["comp", "no_comp"]
+
 # Defining a threshold for the spearman correlation coeffient
 # in order to remove highly correlated variables
 corr_coeff_threshold = 0.7
@@ -95,6 +108,9 @@ raw_predictor_data = pd.read_csv(predictor_data_path)
 
 # Reading in DE-STRESS data
 raw_features_data = pd.read_csv(features_data_path)
+
+# Reading in PDB DE-STRESS data
+raw_pdb_features_data = pd.read_csv(pdb_features_data_path)
 
 # 3. Processing predictor data (Fleishman expression data)-----------------------------------------------
 
@@ -122,7 +138,18 @@ predictor_data["target_antigen"] = np.where(
 )
 
 # Adding a new field to create an expression bin
-predictor_data["expression_bin"] = pd.cut(predictor_data["expression"], 3)
+predictor_data["expression_bin"] = pd.cut(predictor_data["expression"], 3).astype("str")
+
+# Adding a new field to create an sequence length bin
+predictor_data["expression_bin_label"] = np.select(
+    [
+        predictor_data["expression_bin"].eq("(0.0177, 27.533]"),
+        predictor_data["expression_bin"].eq("(27.533, 54.967]"),
+        predictor_data["expression_bin"].eq("(54.967, 82.4]"),
+    ],
+    ["Low", "Medium", "High"],
+    default="Unknown",
+)
 
 # Adding a new field to create an sequence length bin
 predictor_data["length_bin"] = np.select(
@@ -153,195 +180,286 @@ processed_predictor_data.to_csv(
     processed_data_path + "processed_expression_data.csv", index=False
 )
 
+
 # 4. Processing features (DE-STRESS metrics)----------------------------------------------------------
 
-features_data = raw_features_data
-
-# Extracting the design name
-features_data["design_name"] = features_data["design_name"].str.split("_").str[0]
-
-# Removing 4m53 design
-features_data = features_data[features_data["design_name"] != "4m53"]
-
-# Sorting the values by design name
-features_data = features_data.sort_values("design_name").reset_index(drop=True)
-
-# Extracting design name so we can join it back on later
-design_name_df = features_data["design_name"]
-
-# Normalising energy field values by the number of residues
-features_data.loc[
-    :,
-    energy_field_list,
-] = features_data.loc[
-    :,
-    energy_field_list,
-].div(features_data["num_residues"], axis=0)
-
-features_data_columns = features_data.columns.to_list()
-
-# Dropping columns that have been defined manually
-features_data_filt = features_data.drop(drop_cols, axis=1)
-
-# Dropping columns that are not numeric
-features_data_num = features_data_filt.select_dtypes([np.number]).reset_index(drop=True)
-
-# Printing columns that are dropped because they are not numeric
-destress_columns_num = features_data_num.columns.to_list()
-dropped_cols_non_num = set(features_data_columns) - set(destress_columns_num)
-
-# Calculating mean and std of features
-features_mean_std(
-    data=features_data_num,
-    output_path=data_exploration_path,
-    id="destress_data_num",
+# Processing Fleishman DE-STRESS data
+features_data, design_name_df = process_destress_data(
+    raw_features_data,
+    energy_field_list=energy_field_list,
+    drop_cols=drop_cols,
+    data_exploration_path=data_exploration_path,
+    mean_std_id="destress_data_num",
 )
 
+
+raw_pdb_features_data["top_rank_flag"] = np.where(
+    raw_pdb_features_data["design_name"].str.contains("rank_1"), 1, 0
+)
+
+raw_pdb_features_data["relaxed_flag"] = np.where(
+    raw_pdb_features_data["design_name"].str.contains("unrelaxed"), 0, 1
+)
+
+raw_pdb_features_data = raw_pdb_features_data.loc[
+    (
+        (raw_pdb_features_data["top_rank_flag"] == 1)
+        & (raw_pdb_features_data["relaxed_flag"] == 0)
+    )
+].reset_index(drop=True)
+
+raw_pdb_features_data.drop(["top_rank_flag", "relaxed_flag"], axis=1, inplace=True)
+
+# Processing PDB DE-STRESS data
+pdb_features_data, pdb_design_name_df = process_destress_data(
+    raw_pdb_features_data,
+    energy_field_list=energy_field_list,
+    drop_cols=drop_cols,
+    data_exploration_path=data_exploration_path,
+    mean_std_id="pdb_destress_data_num",
+)
+
+# Removing constant features from Fleishman DE-STRESS features
 (
-    features_constant_removed,
+    features_data_constant_removed,
     constant_features,
 ) = remove_constant_features(
-    data=features_data_num,
+    data=features_data,
     constant_features_threshold=constant_features_threshold,
     output_path=data_exploration_path,
+)
+
+# Removing these features from PDB features as well
+pdb_features_data_constant_removed = pdb_features_data.drop(
+    constant_features, axis=1, inplace=False
 )
 
 print("Features dropped because they're constant")
 print(constant_features)
 
 
-plot_hists_all_columns(
-    data=features_constant_removed,
-    column_list=features_constant_removed.columns.to_list(),
-    output_path=data_exploration_path,
-    file_name="/pre_scaling_hist_",
-)
+# plot_hists_all_columns(
+#     data=features_data_constant_removed,
+#     column_list=features_data_constant_removed.columns.to_list(),
+#     output_path=data_exploration_path,
+#     file_name="/pre_scaling_hist_",
+# )
+
+# plot_hists_all_columns(
+#     data=pdb_features_data_constant_removed,
+#     column_list=pdb_features_data_constant_removed.columns.to_list(),
+#     output_path=data_exploration_path,
+#     file_name="/pdb_pre_scaling_hist_",
+# )
 
 
 # Adding design name back on for the train and test split
-features_constant_removed = pd.concat(
-    [features_constant_removed, design_name_df], axis=1
+features_data_constant_removed = pd.concat(
+    [features_data_constant_removed, design_name_df], axis=1
+)
+pdb_features_data_constant_removed = pd.concat(
+    [pdb_features_data_constant_removed, pdb_design_name_df], axis=1
 )
 
 # 5. Splitting data up into train and test and scaling----------------------------------------------------------
 
 # Scaling features
 for scaling_method in scaling_method_list:
-    scaled_processed_data_path = processed_data_path + scaling_method + "/"
-    scaled_data_exporation_path = data_exploration_path + scaling_method + "/"
+    for comp_flag in comp_flag_list:
+        scaled_processed_data_path = (
+            processed_data_path + scaling_method + "/" + comp_flag + "/"
+        )
+        scaled_data_exporation_path = (
+            data_exploration_path + scaling_method + "/" + comp_flag + "/"
+        )
 
-    # Train and test splits
-    X_train, X_test, y_train, y_test = train_test_split(
-        features_constant_removed,
-        processed_predictor_data,
-        test_size=test_size,
-        random_state=random_state,
-        stratify=processed_predictor_data["expression_bin"],
-    )
+        # Train and test splits
+        X_train, X_test, y_train, y_test = train_test_split(
+            features_data_constant_removed,
+            processed_predictor_data,
+            test_size=test_size,
+            random_state=random_state,
+            stratify=processed_predictor_data["expression_bin"],
+        )
 
-    # Sorting all the data sets by design name
-    X_train = X_train.sort_values("design_name")
-    X_test = X_test.sort_values("design_name")
-    y_train = y_train.sort_values("design_name")
-    y_test = y_test.sort_values("design_name")
+        # Resetting index for PDB data
+        pdb_features_data_processed = pdb_features_data_constant_removed.reset_index(
+            drop=True
+        )
 
-    # Exporting data sets as csv files
-    X_train.to_csv(scaled_processed_data_path + "X_train.csv", index=False)
-    X_test.to_csv(scaled_processed_data_path + "X_test.csv", index=False)
-    y_train.to_csv(scaled_processed_data_path + "y_train.csv", index=False)
-    y_test.to_csv(scaled_processed_data_path + "y_test.csv", index=False)
+        # Removing composition metrics so we have training sets without them
+        if comp_flag == "no_comp":
+            X_train = X_train[
+                X_train.columns.drop(list(X_train.filter(regex="composition")))
+            ]
+            X_test = X_test[
+                X_test.columns.drop(list(X_test.filter(regex="composition")))
+            ]
 
-    # Saving design name order for training data
-    X_train["design_name"].to_csv(
-        scaled_processed_data_path + "train_design_name_order.csv", index=False
-    )
+            pdb_features_data_processed = pdb_features_data_processed[
+                pdb_features_data_processed.columns.drop(
+                    list(pdb_features_data_processed.filter(regex="composition"))
+                )
+            ]
 
-    # Saving design name order for training data
-    X_test["design_name"].to_csv(
-        scaled_processed_data_path + "test_design_name_order.csv", index=False
-    )
+        # Sorting all the data sets by design name
+        X_train = X_train.sort_values("design_name")
+        X_test = X_test.sort_values("design_name")
+        y_train = y_train.sort_values("design_name")
+        y_test = y_test.sort_values("design_name")
+        pdb_features_data_processed.sort_values("design_name")
 
-    # Now removing design name from X_train and X_test
-    X_train.drop(
-        [
-            "design_name",
-        ],
-        axis=1,
-        inplace=True,
-    )
+        # Binarizing the y labels
+        label_binarizer = LabelBinarizer().fit(
+            y_train["expression_bin_label"].to_numpy()
+        )
 
-    # Dropping design name
-    X_test.drop(
-        [
-            "design_name",
-        ],
-        axis=1,
-        inplace=True,
-    )
+        y_train_binary = label_binarizer.transform(
+            y_train["expression_bin_label"].to_numpy()
+        )
+        with open(scaled_processed_data_path + "y_train_binary.npy", "wb") as f:
+            np.save(f, y_train_binary)
 
-    # Scaling data
-    if scaling_method == "minmax":
-        # Scaling the data with min max scaler
-        scaler = MinMaxScaler().fit(X_train)
+        y_test_binary = label_binarizer.transform(
+            y_test["expression_bin_label"].to_numpy()
+        )
 
-    elif scaling_method == "standard":
-        # Scaling the data with standard scaler scaler
-        scaler = StandardScaler().fit(X_train)
+        with open(scaled_processed_data_path + "y_test_binary.npy", "wb") as f:
+            np.save(f, y_test_binary)
 
-    elif scaling_method == "robust":
-        # Scaling the data with robust scaler
-        scaler = RobustScaler().fit(X_train)
+        # Exporting data sets as csv files
+        X_train.to_csv(scaled_processed_data_path + "X_train.csv", index=False)
+        X_test.to_csv(scaled_processed_data_path + "X_test.csv", index=False)
+        y_train.to_csv(scaled_processed_data_path + "y_train.csv", index=False)
+        y_test.to_csv(scaled_processed_data_path + "y_test.csv", index=False)
 
-    # Transforming the data
-    X_train_scaled = pd.DataFrame(
-        scaler.transform(X_train),
-        columns=X_train.columns,
-    )
-    # Transforming test data with same scaler
-    X_test_scaled = pd.DataFrame(
-        scaler.transform(X_test),
-        columns=X_train.columns,
-    )
+        # Saving design name order for training data
+        X_train["design_name"].to_csv(
+            scaled_processed_data_path + "train_design_name_order.csv", index=False
+        )
 
-    # Calculating mean and std of features
-    features_mean_std(
-        data=X_train_scaled,
-        output_path=scaled_data_exporation_path,
-        id="destress_data_scaled",
-    )
+        # Saving design name order for training data
+        X_test["design_name"].to_csv(
+            scaled_processed_data_path + "test_design_name_order.csv", index=False
+        )
 
-    (
-        X_train_drop_high_corr,
-        drop_cols_high_corr,
-    ) = remove_highest_correlators(
-        data=X_train_scaled,
-        corr_coeff_threshold=corr_coeff_threshold,
-        output_path=scaled_data_exporation_path,
-    )
+        # Saving design name order for PDB data
+        pdb_features_data_processed["design_name"].to_csv(
+            scaled_processed_data_path + "pdb_design_name_order.csv", index=False
+        )
 
-    print("Features dropped because of high correlation")
-    print(drop_cols_high_corr)
+        # Now removing design name from X_train and X_test
+        X_train.drop(
+            [
+                "design_name",
+            ],
+            axis=1,
+            inplace=True,
+        )
 
-    # Remove these features from test as well
-    X_test_drop_high_corr = X_test_scaled.drop(
-        drop_cols_high_corr,
-        axis=1,
-        inplace=False,
-    )
+        # Dropping design name
+        X_test.drop(
+            [
+                "design_name",
+            ],
+            axis=1,
+            inplace=True,
+        )
 
-    plot_hists_all_columns(
-        data=X_train_drop_high_corr,
-        column_list=X_train_drop_high_corr.columns.to_list(),
-        output_path=scaled_data_exporation_path,
-        file_name="/post_scaling_hist_",
-    )
+        # Dropping design name
+        pdb_features_data_processed.drop(
+            [
+                "design_name",
+            ],
+            axis=1,
+            inplace=True,
+        )
 
-    X_train_drop_high_corr.to_csv(
-        scaled_processed_data_path + "X_train_scaled.csv",
-        index=False,
-    )
+        # Scaling data
+        if scaling_method == "minmax":
+            # Scaling the data with min max scaler
+            scaler = MinMaxScaler().fit(X_train)
 
-    X_test_drop_high_corr.to_csv(
-        scaled_processed_data_path + "X_test_scaled.csv",
-        index=False,
-    )
+        elif scaling_method == "standard":
+            # Scaling the data with standard scaler scaler
+            scaler = StandardScaler().fit(X_train)
+
+        elif scaling_method == "robust":
+            # Scaling the data with robust scaler
+            scaler = RobustScaler().fit(X_train)
+
+        # Transforming the data
+        X_train_scaled = pd.DataFrame(
+            scaler.transform(X_train),
+            columns=X_train.columns,
+        )
+        # Transforming test data with same scaler
+        X_test_scaled = pd.DataFrame(
+            scaler.transform(X_test),
+            columns=X_train.columns,
+        )
+
+        # Transforming PDB data with same scaler
+        pdb_scaled = pd.DataFrame(
+            scaler.transform(pdb_features_data_processed),
+            columns=X_train.columns,
+        )
+
+        # Calculating mean and std of features
+        features_mean_std(
+            data=X_train_scaled,
+            output_path=scaled_data_exporation_path,
+            id="destress_data_scaled",
+        )
+
+        (
+            X_train_drop_high_corr,
+            drop_cols_high_corr,
+        ) = remove_highest_correlators(
+            data=X_train_scaled,
+            corr_coeff_threshold=corr_coeff_threshold,
+            output_path=scaled_data_exporation_path,
+        )
+
+        print("Features dropped because of high correlation")
+        print(drop_cols_high_corr)
+
+        # Remove these features from test as well
+        X_test_drop_high_corr = X_test_scaled.drop(
+            drop_cols_high_corr,
+            axis=1,
+            inplace=False,
+        )
+        pdb_drop_high_corr = pdb_scaled.drop(
+            drop_cols_high_corr,
+            axis=1,
+            inplace=False,
+        )
+
+        # plot_hists_all_columns(
+        #     data=X_train_drop_high_corr,
+        #     column_list=X_train_drop_high_corr.columns.to_list(),
+        #     output_path=scaled_data_exporation_path,
+        #     file_name="/post_scaling_hist_",
+        # )
+        # plot_hists_all_columns(
+        #     data=pdb_drop_high_corr,
+        #     column_list=pdb_drop_high_corr.columns.to_list(),
+        #     output_path=scaled_data_exporation_path,
+        #     file_name="/pdb_post_scaling_hist_",
+        # )
+
+        X_train_drop_high_corr.to_csv(
+            scaled_processed_data_path + "X_train_scaled.csv",
+            index=False,
+        )
+
+        X_test_drop_high_corr.to_csv(
+            scaled_processed_data_path + "X_test_scaled.csv",
+            index=False,
+        )
+
+        pdb_drop_high_corr.to_csv(
+            scaled_processed_data_path + "pdb_scaled.csv",
+            index=False,
+        )
