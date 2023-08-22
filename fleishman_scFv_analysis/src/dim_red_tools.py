@@ -151,17 +151,25 @@ def plot_latent_space_2d(
         linewidth=0.2,
         edgecolor="black",
     )
-    plt.xlabel(axes_prefix + " " + x_id)
-    plt.ylabel(axes_prefix + " " + y_id)
+    plt.xlabel(axes_prefix + " " + x_id, fontsize=18)
+    plt.ylabel(axes_prefix + " " + y_id, fontsize=18)
+    plt.xticks(fontsize=18)
+    plt.yticks(fontsize=18)
+    # sns.move_legend(
+    #     plot,
+    #     "upper left",
+    #     bbox_to_anchor=(1, 1),
+    #     frameon=False,
+    # )
     sns.move_legend(
         plot,
-        "upper left",
-        bbox_to_anchor=(1, 1),
+        "lower center",
+        bbox_to_anchor=(0.5, -0.4),
         frameon=False,
+        ncols=6,
+        fontsize=16,
+        title_fontsize=16,
     )
-    # sns.move_legend(
-    #     plot, "lower center", bbox_to_anchor=(0.5, -0.35), frameon=False, ncols=5
-    # )
     plot.get_legend().set_title(legend_title)
     plt.savefig(
         output_path + file_name + x_id + y_id + ".png",

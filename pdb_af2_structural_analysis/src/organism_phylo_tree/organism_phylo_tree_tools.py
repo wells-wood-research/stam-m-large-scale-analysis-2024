@@ -36,6 +36,8 @@ def distance_to_reference(data, dim_columns, feature, distance_metric, output_pa
 def plot_dendrogram(model, **kwargs):
     # Create linkage matrix and then plot the dendrogram
 
+    # hierarchy.set_link_color_palette(sns.color_palette("colorblind", as_cmap=True))
+
     # create the counts of samples under each node
     counts = np.zeros(model.children_.shape[0])
     n_samples = len(model.labels_)
@@ -56,22 +58,22 @@ def plot_dendrogram(model, **kwargs):
     dendrogram(linkage_matrix, **kwargs)
 
 
-def plot_organism_groups(data, output_path, title, legend_title):
-    sns.color_palette("tab10")
-
+def plot_organism_groups(data, output_path, hue_order, palette, title, legend_title):
     # PCA 2d scatter plot
     plot = sns.scatterplot(
         x="dim0",
         y="dim1",
         data=data,
         hue="organism_group",
+        hue_order=hue_order,
+        palette=palette,
         # style=style,
-        alpha=0.7,
-        s=50,
+        alpha=0.9,
+        s=100,
         legend=True,
     )
-    plt.xlabel("Principal Component 1")
-    plt.ylabel("Principal Component 2")
+    plt.xlabel("PC1")
+    plt.ylabel("PC2")
     plt.title(title)
     sns.move_legend(plot, "upper left", bbox_to_anchor=(1, 1), frameon=False)
     plot.get_legend().set_title(legend_title)
@@ -84,8 +86,6 @@ def plot_organism_groups(data, output_path, title, legend_title):
 
 
 def plot_organism_groups_plotly(data, output_path, title):
-    sns.color_palette("tab10")
-
     fig = px.scatter_3d(
         data,
         x="dim0",

@@ -31,7 +31,7 @@ for dataset in dataset_list:
         for scaling_method in scaling_method_list:
             # Defining the data file path
             processed_data_path = (
-                "data/processed_data/"
+                "pdb_af2_structural_analysis/data/processed_data/"
                 + dataset
                 + "/"
                 + "iso_for_"
@@ -43,7 +43,7 @@ for dataset in dataset_list:
 
             # Defining the pca analysis path
             pca_analysis_path = (
-                "analysis/dim_red/pca/"
+                "pdb_af2_structural_analysis/analysis/dim_red/pca/"
                 + dataset
                 + "/"
                 + "iso_for_"
@@ -63,7 +63,7 @@ for dataset in dataset_list:
 
             # Defining the pca analysis path
             org_phylo_tree_analysis_path = (
-                "analysis/org_phylo_tree/"
+                "pdb_af2_structural_analysis/analysis/org_phylo_tree/"
                 + dataset
                 + "/"
                 + "iso_for_"
@@ -97,15 +97,17 @@ for dataset in dataset_list:
                 ["organism_scientific_name", "organism_group"], as_index=False
             )[dim_columns].mean()
 
-            pca_transformed_data_avg_filt = pca_transformed_data_avg[
-                pca_transformed_data_avg["organism_group"] != "Other"
-            ]
+            # pca_transformed_data_avg_filt = pca_transformed_data_avg[
+            #     pca_transformed_data_avg["organism_group"] != "Other"
+            # ]
 
             plot_organism_groups(
-                data=pca_transformed_data_avg_filt,
+                data=pca_transformed_data_avg,
                 output_path=org_phylo_tree_analysis_path,
                 title="",
                 legend_title="Organism Group",
+                hue_order=["Animal", "Bacteria", "Fungi", "Plant", "Other"],
+                palette=sns.color_palette("colorblind", as_cmap=True),
                 # title="Dataset - "
                 # + dataset
                 # + ", scaling method - "
@@ -115,7 +117,7 @@ for dataset in dataset_list:
             )
 
             plot_organism_groups_plotly(
-                data=pca_transformed_data_avg_filt,
+                data=pca_transformed_data_avg,
                 output_path=org_phylo_tree_analysis_path,
                 title="",
                 # title="Dataset - "
@@ -137,14 +139,14 @@ for dataset in dataset_list:
             model = AgglomerativeClustering(
                 distance_threshold=0,
                 n_clusters=None,
-                affinity="precomputed",
+                metric="precomputed",
                 linkage="single",
                 compute_distances=True,
             )
 
             model_fitted = model.fit(distances_20d_all)
 
-            plt.figure(figsize=(16, 8))
+            plt.figure(figsize=(9, 8))
             # plt.title("Hierarchical Clustering Dendrogram")
             # plot the top three levels of the dendrogram
             plot_dendrogram(
@@ -152,9 +154,20 @@ for dataset in dataset_list:
                 truncate_mode=None,
                 labels=distances_20d_all.columns.tolist(),
                 orientation="left",
-                leaf_font_size=10,
+                leaf_font_size=8,
             )
-            plt.xticks(fontsize=11)
+            # linkage_matrix = np.column_stack(
+            #     [model_fitted.children_, model_fitted.distances_]
+            # ).astype(float)
+
+            # dendrogram(
+            #     linkage_matrix,
+            #     truncate_mode=None,
+            #     labels=distances_20d_all.columns.tolist(),
+            #     orientation="left",
+            #     leaf_font_size=8,
+            # )
+            plt.xticks(fontsize=10)
             plt.savefig(
                 org_phylo_tree_analysis_path
                 + "pca_hierarchical_clustering_dendogram.png",

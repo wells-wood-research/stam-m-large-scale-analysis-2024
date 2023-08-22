@@ -10,7 +10,7 @@ from sklearn.preprocessing import MinMaxScaler, StandardScaler, RobustScaler
 
 # Defining the data set list
 # dataset_list = ["pdb", "af2", "both"]
-dataset_list = ["both"]
+dataset_list = ["af2"]
 
 # Defining a list of values for isolation forest
 # outlier detection contamination factor
@@ -21,19 +21,21 @@ iso_for_contamination_list = [0.0]
 scaling_method_list = ["standard", "robust", "minmax"]
 
 # Defining file paths for raw data
-raw_af2_destress_data_path = "data/raw_data/af2/destress_data_af2.csv"
-raw_pdb_destress_data_path = "data/raw_data/pdb/destress_data_pdb.csv"
+raw_af2_destress_data_path = (
+    "pdb_af2_structural_analysis/data/raw_data/af2/destress_data_af2.csv"
+)
+raw_pdb_destress_data_path = (
+    "pdb_af2_structural_analysis/data/raw_data/pdb/destress_data_pdb.csv"
+)
 
 # Defining file path for the de novo protein labels
-pdb_denovo_protein_labels_path = "data/raw_data/pdb/denovo_pdb_ids.csv"
+pdb_denovo_protein_labels_path = (
+    "pdb_af2_structural_analysis/data/raw_data/pdb/denovo_pdb_ids.csv"
+)
 
 # Defining file paths for the processed uniprot data sets
-processed_uniprot_data_af2_path = (
-    "data/processed_data/uniprot/processed_uniprot_data_af2.csv"
-)
-processed_uniprot_data_pdb_path = (
-    "data/processed_data/uniprot/processed_uniprot_data_pdb.csv"
-)
+processed_uniprot_data_af2_path = "pdb_af2_structural_analysis/data/processed_data/uniprot/processed_uniprot_data_af2.csv"
+processed_uniprot_data_pdb_path = "pdb_af2_structural_analysis/data/processed_data/uniprot/processed_uniprot_data_pdb.csv"
 
 # Defining a list of DE-STRESS metrics which are energy field metrics
 energy_field_list = [
@@ -110,7 +112,6 @@ organism_animal_list = [
 
 organism_fungi_list = [
     "Candida albicans",
-    "Dictyostelium discoideum",
     "Saccharomyces cerevisiae",
     "Cladophialophora carrionii",
     "Fonsecaea pedrosoi",
@@ -135,6 +136,7 @@ organism_bacteria_list = [
     "Shigella dysenteriae",
     "Staphylococcus aureus",
     "Streptococcus pneumoniae",
+    "Haemophilus influenzae",
 ]
 organism_plant_list = [
     "Arabidopsis thaliana",
@@ -144,8 +146,8 @@ organism_plant_list = [
 ]
 organism_other_list = [
     "Methanocaldococcus jannaschii",
-    "Haemophilus influenzae",
     "Plasmodium falciparum",
+    "Dictyostelium discoideum",
     "Other",
     "Unknown",
 ]
@@ -157,10 +159,13 @@ labels = [
     "pdb_or_af2",
     "charge",
     "isoelectric_point",
+    "isoelectric_point_bin",
     "rosetta_total",
     "packing_density",
+    "packing_density_bin",
     "hydrophobic_fitness",
     "aggrescan3d_avg_value",
+    "aggrescan3d_avg_bin",
     "organism_scientific_name",
     "organism_group",
     "designed_native",
@@ -203,8 +208,12 @@ pdb_denovo_protein_labels["pdb_id"] = pdb_denovo_protein_labels["pdb_id"].str.lo
 
 # Looping through the different data sets
 for dataset in dataset_list:
-    data_exploration_output_path = "analysis/data_exploration/" + dataset + "/"
-    data_output_path = "data/processed_data/" + dataset + "/"
+    data_exploration_output_path = (
+        "pdb_af2_structural_analysis/analysis/data_exploration/" + dataset + "/"
+    )
+    data_output_path = (
+        "pdb_af2_structural_analysis/data/processed_data/" + dataset + "/"
+    )
     # If datasets == "both" then pdb and af2 are concatenated together
     # else we just take the pdb or af2 data
     if dataset == "both":
@@ -313,6 +322,60 @@ for dataset in dataset_list:
         default="Mixed",
     )
 
+    # Adding a new field to create a isoelectric point bin
+    destress_data["isoelectric_point_bin"] = np.select(
+        [
+            destress_data["isoelectric_point"].lt(6),
+            destress_data["isoelectric_point"].ge(6)
+            & destress_data["isoelectric_point"].le(8),
+            destress_data["isoelectric_point"].gt(8),
+        ],
+        [
+            "Less than 6",
+            "Between 6 and 8",
+            "Greater than 8",
+        ],
+        default="Unknown",
+    )
+
+    # Adding a new field to create a packing density bin
+    destress_data["packing_density_bin"] = np.select(
+        [
+            destress_data["packing_density"].lt(40),
+            destress_data["packing_density"].ge(40)
+            & destress_data["packing_density"].lt(60),
+            destress_data["packing_density"].ge(60)
+            & destress_data["packing_density"].lt(80),
+            destress_data["packing_density"].ge(80),
+        ],
+        [
+            "Less than 40",
+            "Between 40 and 60",
+            "Between 60 and 80",
+            "Greater than 80",
+        ],
+        default="Unknown",
+    )
+
+    # Adding a new field to create a packing density bin
+    destress_data["aggrescan3d_avg_bin"] = np.select(
+        [
+            destress_data["aggrescan3d_avg_value"].lt(-2),
+            destress_data["aggrescan3d_avg_value"].ge(-2)
+            & destress_data["aggrescan3d_avg_value"].lt(0),
+            destress_data["aggrescan3d_avg_value"].ge(0)
+            & destress_data["aggrescan3d_avg_value"].lt(2),
+            destress_data["aggrescan3d_avg_value"].ge(2),
+        ],
+        [
+            "Less than -2",
+            "Between -2 and 0",
+            "Between 0 and 2",
+            "Greater than 2",
+        ],
+        default="Unknown",
+    )
+
     # # Adding a new field to create a dssp bin
     # destress_data["isoelectric_point_bin"] = np.select(
     #     [
@@ -415,6 +478,9 @@ for dataset in dataset_list:
             destress_data_uniprot["organism_scientific_name_pdb"],
         )
 
+    # Dropping duplicates after joining
+    destress_data_uniprot.drop_duplicates(inplace=True)
+
     # Adding a new field to create an organism group
     destress_data_uniprot["organism_group"] = np.select(
         [
@@ -466,6 +532,13 @@ for dataset in dataset_list:
     destress_data_num = destress_data_uniprot.select_dtypes([np.number]).reset_index(
         drop=True
     )
+
+    # Dropping composition metrics
+    destress_data_num = destress_data_num[
+        destress_data_num.columns.drop(
+            list(destress_data_num.filter(regex="composition"))
+        )
+    ]
 
     # Printing columns that are dropped because they are not numeric
     destress_columns_num = destress_data_num.columns.to_list()

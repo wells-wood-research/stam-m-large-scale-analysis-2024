@@ -124,14 +124,13 @@ def plot_latent_space_2d(
     axes_prefix,
     legend_title,
     hue,
+    hue_order,
     alpha,
     s,
     palette,
     output_path,
     file_name,
 ):
-    sns.color_palette("tab10")
-
     x_id = str(int(x[-1]) + 1)
     y_id = str(int(y[-1]) + 1)
 
@@ -141,6 +140,7 @@ def plot_latent_space_2d(
         y=y,
         data=data,
         hue=hue,
+        hue_order=hue_order,
         # style=style,
         alpha=alpha,
         palette=palette,
@@ -149,18 +149,47 @@ def plot_latent_space_2d(
         linewidth=0.2,
         edgecolor="black",
     )
-    plt.xlabel(axes_prefix + " " + x_id)
-    plt.ylabel(axes_prefix + " " + y_id)
-    sns.move_legend(
-        plot,
-        "upper left",
-        bbox_to_anchor=(1, 1),
+    plt.xlabel(axes_prefix + " " + x_id, fontsize=17)
+    plt.ylabel(axes_prefix + " " + y_id, fontsize=17)
+    plt.xticks(fontsize=17)
+    plt.yticks(fontsize=17)
+    # sns.move_legend(
+    #     plot,
+    #     "upper left",
+    #     bbox_to_anchor=(1, 1),
+    #     frameon=False,
+    #     title=legend_title,
+    #     title_fontsize=14,
+    # )
+
+    # handles, labels = plt.gca().get_legend_handles_labels()
+
+    # # specify order of items in legend
+    # order = [3, 2, 1, 0]
+
+    # add legend to plot
+    plt.legend(
+        # [handles[idx] for idx in order],
+        # [labels[idx] for idx in order],
+        loc="lower center",
+        bbox_to_anchor=(0.5, -0.4),
+        # loc="upper left",
+        # bbox_to_anchor=(1, 1),
         frameon=False,
+        fontsize=15,
+        ncols=6,
+        title=legend_title,
+        title_fontsize=15,
     )
     # sns.move_legend(
-    #     plot, "lower center", bbox_to_anchor=(0.5, -0.35), frameon=False, ncols=5
+    #     plot,
+    #     "lower center",
+    #     bbox_to_anchor=(0.5, -0.35),
+    #     frameon=False,
+    #     ncols=5,
+    #     title=legend_title,
+    #     title_fontsize=14,
     # )
-    plot.get_legend().set_title(legend_title)
     plt.savefig(
         output_path + file_name + x_id + y_id + ".png",
         bbox_inches="tight",
@@ -232,6 +261,7 @@ def spectral_plot(
     legend_title,
     output_path,
     file_name,
+    palette,
 ):
     # Changing format of data from wide to long
     pca_data_long = pca_data.melt(
@@ -248,7 +278,6 @@ def spectral_plot(
     ].reset_index(drop=True)
 
     sns.set_style("ticks")
-    sns.color_palette("tab10")
 
     # Plot the pca spectre for the different sequences
     plot = sns.lineplot(
@@ -259,7 +288,8 @@ def spectral_plot(
         legend="full",
         data=pca_data_filt,
         linewidth=4,
-        # alpha=0.9,
+        alpha=0.9,
+        palette=palette,
     )
     # ax.legend(
     #     loc="lower center",
@@ -277,20 +307,32 @@ def spectral_plot(
     # )
     # plot.get_legend().set_title(legend_title)
     # plt.legend(title=legend_title, fontsize="20", title_fontsize="14")
-    sns.move_legend(
-        plot,
-        "lower center",
+    legend = plt.legend(
+        loc="lower center",
         bbox_to_anchor=(0.5, -0.38),
         frameon=False,
         ncols=2,
-        fontsize=14,
+        fontsize=13,
         title=legend_title,
+        markerscale=10,
     )
-    plt.xlabel("Principal Component ID", fontsize=14)
-    plt.ylabel("Principal Component Value", fontsize=14)
+    for legobj in legend.legendHandles:
+        legobj.set_linewidth(4)
+    plt.xlabel("PC ID", fontsize=14)
+    plt.ylabel("PC Value", fontsize=14)
     plt.title(title, fontsize=16)
-    plt.xticks(fontsize=14)
+
+    locs, labels = plt.xticks()
+    plt.xticks(
+        ticks=locs,
+        # labels=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
+        labels=[1, 2, 3, 4, 5, 6, 7, 8],
+        fontsize=14,
+    )
+
     plt.yticks(fontsize=14)
+    # plt.ylim([-1.1, 2.3])
+    # plt.ylim([-0.1, 0.1])
 
     plt.savefig(
         output_path + file_name + ".png",

@@ -40,7 +40,7 @@ def classifier_eval(
     recall_list,
 ):
     # Generating a confusion matrix on the test set
-    cf_mat = confusion_matrix(y_test, classifier.predict(X_test))
+    cf_mat = confusion_matrix(y_test, y_pred=classifier.predict(X_test))
 
     # Calculating weighted roc auc score
     roc_auc = roc_auc_score(
@@ -73,26 +73,51 @@ def classifier_eval(
 
 
 # Defining a function to plot confusion matrices
-def plot_cf_mat(class_order, cf_mat_total, model_output_path, model_id):
-    group_counts = ["{0:0.0f}".format(value) for value in cf_mat_total.flatten()]
-    row_sums = cf_mat_total.sum(axis=1)
+def plot_cf_mat(cf_mat_total, model_output_path, model_id):
+    # Changing the order of the matrix
+    cf_mat_total_sorted = cf_mat_total[:, [1, 2, 0]]
+    cf_mat_total_sorted = cf_mat_total_sorted[[1, 2, 0], :]
+
+    group_counts = ["{0:0.0f}".format(value) for value in cf_mat_total_sorted.flatten()]
+    row_sums = cf_mat_total_sorted.sum(axis=1)
     group_percentages = [
-        "{0:.2%}".format(value)
-        for value in (cf_mat_total / row_sums[:, np.newaxis]).flatten()
+        "{0:.1%}".format(value)
+        for value in (cf_mat_total_sorted / row_sums[:, np.newaxis]).flatten()
     ]
 
-    labels = [f"{v1}\n{v2}" for v1, v2 in zip(group_counts, group_percentages)]
+    # labels = [f"{v1}\n{v2}" for v1, v2 in zip(group_counts, group_percentages)]
+    labels = [f"{v1}" for v1 in group_percentages]
     labels = np.asarray(labels).reshape(3, 3)
 
-    ax = sns.heatmap(cf_mat_total, annot=labels, fmt="", cmap="Blues")
-    ax.set_xlabel("Predicted Expression Level")
-    ax.set_ylabel("Actual Expression Level")
+    sns.set(font_scale=1.2)
 
-    classes = class_order
+    ax = sns.heatmap(
+        cf_mat_total_sorted / row_sums[:, None],
+        annot=labels,
+        annot_kws={"fontsize": 16},
+        fmt="",
+        cmap="Blues",
+        vmin=0,
+        vmax=1,
+    )
+    ax.set_xlabel("Predicted", fontsize=16)
+    ax.set_ylabel("Actual", fontsize=16)
+    plt.xticks(fontsize=16)
+    plt.yticks(fontsize=16)
+
+    handles, labels = plt.gca().get_legend_handles_labels()
+
+    # add legend to plot
+    ax.legend(
+        handles,
+        labels,
+        fontsize=16,
+        frameon=False,
+    )
 
     ## Ticket labels - List must be in alphabetical order
-    ax.xaxis.set_ticklabels(classes)
-    ax.yaxis.set_ticklabels(classes)
+    ax.xaxis.set_ticklabels(["Low", "Medium", "High"])
+    ax.yaxis.set_ticklabels(["Low", "Medium", "High"])
     plt.savefig(
         model_output_path + "cf_mat_" + model_id + ".png", bbox_inches="tight", dpi=600
     )
@@ -168,10 +193,12 @@ def plot_roc_curve(
         class_mean_tpr_list, weights=class_volume_list, axis=0
     )
     overall_mean_auc = np.average(class_mean_auc_list, weights=class_volume_list)
-    overall_std_auc = np.average(class_std_auc_list, weights=class_volume_list)
     overall_stand_err_auc = np.average(
         class_stand_err_auc_list, weights=class_volume_list
     )
+
+    sns.set_style("ticks")
+    sns.color_palette("tab10")
 
     fig, ax = plt.subplots(figsize=(8, 6))
 
@@ -181,12 +208,11 @@ def plot_roc_curve(
             y=class_mean_tpr_list[i],
             color=color_list[i],
             label=classes[i]
-            + " Expression - Mean ROC (AUC = "
-            + "%.2f" % round(class_mean_auc_list[i], 2)
-            + " $\pm$ "
-            + "%.3f" % round(class_stand_err_auc_list[i], 3)
-            + ")",
-            lw=3,
+            + " - Mean AUC = "
+            + "%.2f" % round(class_mean_auc_list[i], 2),
+            # + " $\pm$ "
+            # + "%.3f" % round(class_stand_err_auc_list[i], 3),
+            lw=4,
             alpha=0.8,
         )
 
@@ -194,12 +220,10 @@ def plot_roc_curve(
         x=mean_fpr,
         y=overall_mean_tpr,
         color=color_list[3],
-        label="Overall - Mean ROC (AUC = "
-        + "%.2f" % round(overall_mean_auc, 2)
-        + " $\pm$ "
-        + "%.3f" % round(overall_stand_err_auc, 3)
-        + ")",
-        lw=3,
+        label="Overall - Mean AUC = " + "%.2f" % round(overall_mean_auc, 2),
+        # + " $\pm$ "
+        # + "%.3f" % round(overall_stand_err_auc, 3),
+        lw=4,
         alpha=0.8,
     )
 
@@ -208,14 +232,28 @@ def plot_roc_curve(
         y=np.linspace(0, 1, 100),
         linestyle="dashed",
         color="black",
+        lw=4,
     )
 
     ax.set(
         xlim=[-0.05, 1.05],
         ylim=[-0.05, 1.05],
-        xlabel="False Positive Rate",
-        ylabel="True Positive Rate",
+        # xlabel="False Positive Rate",
+        # ylabel="True Positive Rate",
     )
+    ax.set_xlabel("False Positive Rate", fontsize=19)
+    ax.set_ylabel("True Positive Rate", fontsize=19)
+    plt.xticks(fontsize=19)
+    plt.yticks(fontsize=19)
+
+    # sns.move_legend(
+    #     ax,
+    #     "upper left",
+    #     bbox_to_anchor=(1, 1),
+    #     frameon=False,
+    #     fontsize=14,
+    #     title="Yeast Display Expression",
+    # )
     handles, labels = plt.gca().get_legend_handles_labels()
 
     # specify order of items in legend
@@ -225,7 +263,12 @@ def plot_roc_curve(
     ax.legend(
         [handles[idx] for idx in order],
         [labels[idx] for idx in order],
-        loc="lower right",
+        # loc="upper left",
+        # bbox_to_anchor=(1, 1),
+        frameon=False,
+        fontsize=17,
+        title="",
+        # title_fontsize=16,
     )
 
     # tprs_upper = np.minimum(
@@ -339,7 +382,6 @@ def run_cross_validation(
     mean_cv_recall = np.sum(recall_list) / len(recall_list)
 
     plot_cf_mat(
-        class_order=["Low", "Medium", "High"],
         cf_mat_total=cf_mat_total,
         model_output_path=model_output_path,
         model_id=model_id,
