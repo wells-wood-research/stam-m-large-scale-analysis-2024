@@ -68,8 +68,8 @@ def plot_organism_groups(data, output_path, hue_order, palette, title, legend_ti
         hue_order=hue_order,
         palette=palette,
         # style=style,
-        alpha=0.9,
-        s=100,
+        alpha=0.8,
+        s=120,
         legend=True,
     )
     plt.xlabel("PC1")
@@ -86,11 +86,11 @@ def plot_organism_groups(data, output_path, hue_order, palette, title, legend_ti
 
 
 def plot_organism_groups_plotly(data, output_path, title):
-    fig = px.scatter_3d(
+    fig = px.scatter(
         data,
         x="dim0",
         y="dim1",
-        z="dim2",
+        # z="dim2",
         color="organism_group",
         color_discrete_sequence=px.colors.qualitative.G10,
         hover_data=[
@@ -98,7 +98,7 @@ def plot_organism_groups_plotly(data, output_path, title):
             "organism_group",
             "dim0",
             "dim1",
-            "dim2",
+            # "dim2",
         ],
         title=title,
         opacity=0.8,

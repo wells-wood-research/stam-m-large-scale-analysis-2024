@@ -7,6 +7,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 import plotly.express as px
+import plotly.graph_objects as go
 from sklearn.cluster import KMeans, DBSCAN, SpectralClustering
 from sklearn.mixture import GaussianMixture
 from sklearn import metrics
@@ -23,16 +24,16 @@ dataset_list = ["af2"]
 iso_for_contamination = 0.00
 
 # Defining the scaling methods list
-# scaling_method_list = ["standard", "robust", "minmax"]
-scaling_method_list = ["robust"]
+scaling_method_list = ["standard", "robust", "minmax"]
+# scaling_method_list = ["robust"]
 
 # Defining the number of principal components
-# n_pca_components_list = range(2, 8, 1)
-n_pca_components_list = [2]
+n_pca_components_list = range(2, 8, 1)
+# n_pca_components_list = [8]
 
 # Defining the number of clusters
-# n_clusters_list = range(2, 10, 1)
-n_clusters_list = [6]
+n_clusters_list = range(2, 10, 1)
+# n_clusters_list = [6]
 
 # # Defining the clustering method list
 clustering_method_list = ["kmeans"]
@@ -196,57 +197,157 @@ for dataset in dataset_list:
                             [pca_transformed_data_avg, predicted_labels_df], axis=1
                         )
 
+                        sns.set_style("whitegrid")
+
                         # PCA 2d scatter plot
                         plot = sns.scatterplot(
                             x="dim0",
                             y="dim1",
-                            data=kmeans_predicted_clusters_df,
+                            data=kmeans_predicted_clusters_df.sort_values(
+                                by="organism_group", ascending=True
+                            ),
                             hue="pred_labels",
                             # hue_order=hue_order,
-                            palette=sns.color_palette("colorblind"),
+                            palette=sns.color_palette(
+                                "colorblind",
+                                as_cmap=True,
+                            ),
                             style="organism_group",
-                            alpha=0.9,
-                            s=100,
+                            alpha=0.8,
+                            s=150,
                             legend=True,
                         )
-                        plt.xlabel("PC1")
-                        plt.ylabel("PC2")
+                        plt.xlabel("PC1", fontsize=14)
+                        plt.ylabel("PC2", fontsize=14)
+                        plt.xticks(fontsize=14)
+                        plt.yticks(fontsize=14)
                         # plt.title(title)
+
+                        # legend = plt.gca().get_legend()
+                        # handles, labels = legend.legendHandles, [
+                        #     text.get_text() for text in legend.get_texts()
+                        # ]
+                        # labels_new = [
+                        #     "Clusters",
+                        #     "1",
+                        #     "2",
+                        #     "3",
+                        #     "4",
+                        #     "5",
+                        #     "6",
+                        #     "Organism Group",
+                        #     "Animal",
+                        #     "Archaea",
+                        #     "Bacteria",
+                        #     "Fungi",
+                        #     "Plant",
+                        #     "Protozoan",
+                        # ]
                         sns.move_legend(
-                            plot, "upper left", bbox_to_anchor=(1, 1), frameon=False
+                            plot,
+                            # handles=handles,
+                            # labels=labels_new,
+                            loc="upper left",
+                            bbox_to_anchor=(1, 1),
+                            frameon=False,
+                            fontsize=12,
                         )
-                        plot.get_legend().set_title("K-Means Clusters")
+                        # plot.get_legend().set_title("K-Means Clusters")
                         plt.savefig(
-                            clustering_output_path + model_id + ".png",
+                            clustering_output_path + model_id + "_12.png",
                             bbox_inches="tight",
                             dpi=300,
                         )
                         plt.close()
 
-                        fig = px.scatter(
-                            kmeans_predicted_clusters_df,
-                            x="dim0",
-                            y="dim1",
-                            color="pred_labels",
-                            color_discrete_sequence=sns.color_palette("colorblind"),
-                            symbol="organism_group",
-                            hover_data=[
-                                "organism_scientific_name",
-                                "organism_group",
-                                "dim0",
-                                "dim1",
-                            ],
-                            # title=title,
-                            opacity=0.8,
-                        )
-                        fig.update_traces(
-                            marker=dict(size=30, line=dict(width=2)),
-                            selector=dict(mode="markers"),
-                        )
-                        fig.update_layout(showlegend=False)
-                        fig.write_html(
-                            clustering_output_path + model_id + ".html",
-                        )
+                        # # PCA 2d scatter plot
+                        # plot = sns.scatterplot(
+                        #     x="dim1",
+                        #     y="dim2",
+                        #     data=kmeans_predicted_clusters_df,
+                        #     hue="pred_labels",
+                        #     # hue_order=hue_order,
+                        #     palette=sns.color_palette("colorblind", n_colors=6),
+                        #     style="organism_group",
+                        #     alpha=0.9,
+                        #     s=100,
+                        #     legend=True,
+                        # )
+                        # plt.xlabel("PC2")
+                        # plt.ylabel("PC3")
+                        # # plt.title(title)
+                        # sns.move_legend(
+                        #     plot, "upper left", bbox_to_anchor=(1, 1), frameon=False
+                        # )
+                        # plot.get_legend().set_title("K-Means Clusters")
+                        # plt.savefig(
+                        #     clustering_output_path + model_id + "_23.png",
+                        #     bbox_inches="tight",
+                        #     dpi=300,
+                        # )
+                        # plt.close()
+
+                        # # PCA 2d scatter plot
+                        # plot = sns.scatterplot(
+                        #     x="dim0",
+                        #     y="dim2",
+                        #     data=kmeans_predicted_clusters_df,
+                        #     hue="pred_labels",
+                        #     # hue_order=hue_order,
+                        #     palette=sns.color_palette("colorblind", n_colors=6),
+                        #     style="organism_group",
+                        #     alpha=0.9,
+                        #     s=100,
+                        #     legend=True,
+                        # )
+                        # plt.xlabel("PC1")
+                        # plt.ylabel("PC3")
+                        # # plt.title(title)
+                        # sns.move_legend(
+                        #     plot, "upper left", bbox_to_anchor=(1, 1), frameon=False
+                        # )
+                        # plot.get_legend().set_title("K-Means Clusters")
+                        # plt.savefig(
+                        #     clustering_output_path + model_id + "_13.png",
+                        #     bbox_inches="tight",
+                        #     dpi=300,
+                        # )
+                        # plt.close()
+
+                        # fig = px.scatter_3d(
+                        #     kmeans_predicted_clusters_df,
+                        #     x="dim0",
+                        #     y="dim1",
+                        #     z="dim2",
+                        #     color="pred_labels",
+                        #     color_discrete_sequence=sns.color_palette(
+                        #         "colorblind",
+                        #         as_cmap=True,
+                        #         n_colors=6,
+                        #     ),
+                        #     symbol="organism_group",
+                        #     symbol_sequence=[
+                        #         "circle",
+                        #         "square",
+                        #         "diamond",
+                        #         "cross",
+                        #         "square-open",
+                        #         "circle-open",
+                        #     ],
+                        #     hover_data=[
+                        #         "organism_scientific_name",
+                        #         "organism_group",
+                        #         "dim0",
+                        #         "dim1",
+                        #     ],
+                        #     # title=title,
+                        #     opacity=0.8,
+                        # )
+                        # fig.update_traces(marker_size=12)
+                        # fig.update_layout(showlegend=False)
+                        # fig.write_html(
+                        #     clustering_output_path + model_id + ".html",
+                        # )
 
                         # Creating a row data frame
                         clustering_results = pd.DataFrame(

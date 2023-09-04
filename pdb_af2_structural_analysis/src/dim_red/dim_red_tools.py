@@ -149,10 +149,12 @@ def plot_latent_space_2d(
         linewidth=0.2,
         edgecolor="black",
     )
-    plt.xlabel(axes_prefix + " " + x_id, fontsize=17)
-    plt.ylabel(axes_prefix + " " + y_id, fontsize=17)
+    plt.xlabel(axes_prefix + x_id, fontsize=17)
+    plt.ylabel(axes_prefix + y_id, fontsize=17)
     plt.xticks(fontsize=17)
     plt.yticks(fontsize=17)
+    plt.xlim([-0.8, 0.9])
+    plt.ylim([-0.7, 0.8])
     # sns.move_legend(
     #     plot,
     #     "upper left",
@@ -171,13 +173,13 @@ def plot_latent_space_2d(
     plt.legend(
         # [handles[idx] for idx in order],
         # [labels[idx] for idx in order],
-        loc="lower center",
-        bbox_to_anchor=(0.5, -0.4),
-        # loc="upper left",
-        # bbox_to_anchor=(1, 1),
+        # loc="lower center",
+        # bbox_to_anchor=(0.5, -0.4),
+        loc="upper left",
+        bbox_to_anchor=(1, 1),
         frameon=False,
         fontsize=15,
-        ncols=6,
+        # ncols=6,
         title=legend_title,
         title_fontsize=15,
     )
@@ -319,7 +321,7 @@ def spectral_plot(
     for legobj in legend.legendHandles:
         legobj.set_linewidth(4)
     plt.xlabel("PC ID", fontsize=14)
-    plt.ylabel("PC Value", fontsize=14)
+    plt.ylabel("Average PC Value", fontsize=14)
     plt.title(title, fontsize=16)
 
     locs, labels = plt.xticks()
@@ -331,8 +333,8 @@ def spectral_plot(
     )
 
     plt.yticks(fontsize=14)
-    # plt.ylim([-1.1, 2.3])
-    # plt.ylim([-0.1, 0.1])
+    # plt.ylim([-0.11, 0.11])
+    plt.ylim([-1, 1])
 
     plt.savefig(
         output_path + file_name + ".png",

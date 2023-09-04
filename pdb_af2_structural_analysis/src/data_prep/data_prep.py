@@ -99,14 +99,10 @@ organism_animal_list = [
     "Homo sapiens",
     "Brugia malayi",
     "Dracunculus medinensis",
-    "Leishmania infantum",
     "Onchocerca volvulus",
-    "Paracoccidioides lutzii",
     "Schistosoma mansoni",
     "Strongyloides stercoralis",
     "Trichuris trichiura",
-    "Trypanosoma brucei",
-    "Trypanosoma cruzi",
     "Wuchereria bancrofti",
 ]
 
@@ -119,6 +115,7 @@ organism_fungi_list = [
     "Sporothrix schenckii",
     "Ajellomyces capsulatus",
     "Schizosaccharomyces pombe",
+    "Paracoccidioides lutzii",
 ]
 organism_bacteria_list = [
     "Escherichia coli",
@@ -144,10 +141,17 @@ organism_plant_list = [
     "Oryza sativa",
     "Zea mays",
 ]
-organism_other_list = [
-    "Methanocaldococcus jannaschii",
+organism_protozoan_list = [
     "Plasmodium falciparum",
     "Dictyostelium discoideum",
+    "Leishmania infantum",
+    "Trypanosoma brucei",
+    "Trypanosoma cruzi",
+]
+
+organism_archaea_list = ["Methanocaldococcus jannaschii"]
+
+organism_other_list = [
     "Other",
     "Unknown",
 ]
@@ -168,6 +172,7 @@ labels = [
     "aggrescan3d_avg_bin",
     "organism_scientific_name",
     "organism_group",
+    "organism_group2",
     "designed_native",
 ]
 
@@ -481,6 +486,9 @@ for dataset in dataset_list:
     # Dropping duplicates after joining
     destress_data_uniprot.drop_duplicates(inplace=True)
 
+    test = destress_data_uniprot.groupby("organism_scientific_name").count()
+    test.to_csv(data_output_path + "unique_organisms.csv")
+
     # Adding a new field to create an organism group
     destress_data_uniprot["organism_group"] = np.select(
         [
@@ -492,6 +500,12 @@ for dataset in dataset_list:
                 organism_bacteria_list
             ),
             destress_data_uniprot["organism_scientific_name"].isin(organism_plant_list),
+            destress_data_uniprot["organism_scientific_name"].isin(
+                organism_protozoan_list
+            ),
+            destress_data_uniprot["organism_scientific_name"].isin(
+                organism_archaea_list
+            ),
             destress_data_uniprot["organism_scientific_name"].isin(organism_other_list),
         ],
         [
@@ -499,6 +513,30 @@ for dataset in dataset_list:
             "Fungi",
             "Bacteria",
             "Plant",
+            "Protozoan",
+            "Archaea",
+            "Other",
+        ],
+        default="Unknown",
+    )
+
+    # Adding a new field to create an organism group
+    destress_data_uniprot["organism_group2"] = np.select(
+        [
+            destress_data_uniprot["organism_scientific_name"].isin(
+                organism_animal_list
+                + organism_protozoan_list
+                + organism_fungi_list
+                + organism_plant_list
+            ),
+            destress_data_uniprot["organism_scientific_name"].isin(
+                organism_bacteria_list + organism_archaea_list
+            ),
+            destress_data_uniprot["organism_scientific_name"].isin(organism_other_list),
+        ],
+        [
+            "Eukaryotes",
+            "Prokaryotes",
             "Other",
         ],
         default="Unknown",

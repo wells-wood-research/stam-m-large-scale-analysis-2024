@@ -21,7 +21,7 @@ scaling_method_list = ["standard", "robust", "minmax"]
 np.random.seed(42)
 
 # Defining number of principal components
-n_components = 8
+n_components = 10
 
 # Defining list of dim ids
 dim_ids_list = []
@@ -35,14 +35,17 @@ hover_data = ["design_name", "dim0", "dim1"]
 # Defining a list of formatted versions of the labels
 labels_formatted = [
     # "PDB or AF2",
-    # "Isoelectric Point",
-    # "Packing Density",
+    "Isoelectric Point",
+    "Packing Density",
     # "Hydrophobic Fitness",
     # "Aggrescan3D Average Value",
     # "Designed or Native",
     # "Secondary Structure",
-    "Organism",
+    # "Organism",
 ]
+
+# Creating a color palette
+palette = sns.color_palette(["#0173b2", "#d55e00", "#029e73", "#cc78bc"], 4)
 
 # 2. Looping through the different data sets------------------------------------------------------
 
@@ -111,16 +114,58 @@ for dataset in dataset_list:
 
             # Setting theme for plots
             # sns.set_theme(style="darkgrid")
-            sns.set_style("ticks")
+            # sns.set_style("ticks")
+            sns.set_style("whitegrid")
+
+            # plot = sns.scatterplot(
+            #     data=pca_transformed_data,
+            #     x="dim0",
+            #     y="dim1",
+            #     alpha=0.8,
+            #     s=30,
+            #     legend=True,
+            #     linewidth=0.2,
+            #     edgecolor="black",
+            # )
+            # plt.xlabel("PC1", fontsize=15)
+            # plt.ylabel("PC2", fontsize=15)
+            # plt.xticks(fontsize=15)
+            # plt.yticks(fontsize=15)
+            # # plt.ylim([-0.11, 0.11])
+            # plt.xlim([-0.8, 0.9])
+            # plt.ylim([-0.7, 0.8])
+            # plt.savefig(
+            #     pca_analysis_path + "pca_embedding_12.png",
+            #     bbox_inches="tight",
+            #     dpi=600,
+            # )
+            # plt.close()
+
+            # fig = px.scatter(
+            #     pca_transformed_data,
+            #     x="dim0",
+            #     y="dim1",
+            #     opacity=0.9,
+            #     hover_data=hover_data,
+            #     labels={
+            #         "dim0": "PC1",
+            #         "dim1": "PC2",
+            #     },
+            # )
+            # fig.update_traces(
+            #     marker=dict(size=10, line=dict(width=0.8)),
+            #     selector=dict(mode="markers"),
+            # )
+            # fig.write_html(pca_analysis_path + "pca_embedding_12.html")
 
             plot_var_list = [
                 # "pdb_or_af2",
-                # "isoelectric_point",
-                # "packing_density",
+                "isoelectric_point",
+                "packing_density",
                 # "hydrophobic_fitness",
                 # "aggrescan3d_avg_value",
                 # "designed_native",
-                "organism_scientific_name",
+                # "organism_scientific_name",
             ]
 
             # Looping through the different labels that we're interested in
@@ -136,7 +181,8 @@ for dataset in dataset_list:
                     cmap = sns.color_palette("viridis", as_cmap=True)
 
                 else:
-                    cmap = sns.color_palette("colorblind")
+                    # cmap = sns.color_palette("colorblind")
+                    cmap = palette
 
                 # plot_pca_plotly(
                 #     pca_data=pca_transformed_data.sort_values(by=var, ascending=False),
@@ -152,17 +198,15 @@ for dataset in dataset_list:
                 # )
 
                 # plot_latent_space_2d(
-                #     data=pca_transformed_data.sort_values(by=var, ascending=False),
+                #     data=pca_transformed_data.sort_values(by=var, ascending=True),
                 #     x="dim0",
                 #     y="dim1",
-                #     axes_prefix="PCA Dim",
+                #     axes_prefix="PC",
                 #     legend_title=labels_formatted[i],
                 #     hue=var,
-                #     hue_order=pca_transformed_data.sort_values(by=var, ascending=False)[
-                #         var
-                #     ]
-                #     .unique()
-                #     .tolist(),
+                #     # hue_order=pca_transformed_data.sort_values(by=var, ascending=False)[var]
+                #     # .unique()
+                #     # .tolist(),
                 #     # style=var,
                 #     alpha=0.8,
                 #     s=70,
@@ -213,7 +257,7 @@ for dataset in dataset_list:
             #     legend_title="",
             #     output_path=pca_analysis_path,
             #     file_name="spectral_plot_plant",
-            #     palette=sns.color_palette("colorblind"),
+            #     palette=palette,
             # )
 
             # spectral_plot(
@@ -227,7 +271,7 @@ for dataset in dataset_list:
             #     legend_title="",
             #     output_path=pca_analysis_path,
             #     file_name="spectral_plot_bacteria",
-            #     palette=sns.color_palette("colorblind"),
+            #     palette=palette,
             # )
 
             # spectral_plot(
@@ -241,7 +285,7 @@ for dataset in dataset_list:
             #     legend_title="",
             #     output_path=pca_analysis_path,
             #     file_name="spectral_plot_animal",
-            #     palette=sns.color_palette("colorblind"),
+            #     palette=palette,
             # )
 
             # spectral_plot(
@@ -255,14 +299,14 @@ for dataset in dataset_list:
             #     legend_title="",
             #     output_path=pca_analysis_path,
             #     file_name="spectral_plot_funghi",
-            #     palette=sns.color_palette("colorblind"),
+            #     palette=palette,
             # )
 
-            # data_filtered = pca_transformed_data[
-            #     ~pca_transformed_data["dssp_bin"]
-            #     .isin(["Bend", "Hbond Turn", "3 10 Helix"])
-            #     .reset_index(drop=True)
-            # ]
+            data_filtered = pca_transformed_data[
+                ~pca_transformed_data["dssp_bin"]
+                .isin(["Bend", "Hbond Turn", "3 10 Helix"])
+                .reset_index(drop=True)
+            ]
 
             # plot_pca_plotly(
             #     pca_data=data_filtered.sort_values(by="dssp_bin", ascending=False),
@@ -277,28 +321,30 @@ for dataset in dataset_list:
             #     file_name="pca_embedding_" + "dssp_bin" + ".html",
             # )
 
-            # plot_latent_space_2d(
-            #     data=data_filtered.sort_values(by="dssp_bin", ascending=False),
-            #     x="dim0",
-            #     y="dim1",
-            #     axes_prefix="PCA Dim",
-            #     legend_title="Secondary Structure",
-            #     hue="dssp_bin",
-            #     hue_order=["Alpha Helix", "Beta Strand", "Loop", "Mixed"],
-            #     # style=var,
-            #     alpha=0.8,
-            #     s=70,
-            #     palette=sns.color_palette("colorblind"),
-            #     output_path=pca_analysis_path,
-            #     file_name="pca_embedding_" + "dssp_bin",
-            # )
+            sns.set_style("whitegrid")
+
+            plot_latent_space_2d(
+                data=data_filtered.sort_values(by="dssp_bin", ascending=False),
+                x="dim0",
+                y="dim1",
+                axes_prefix="PC",
+                legend_title="Secondary Structure",
+                hue="dssp_bin",
+                hue_order=["Alpha Helix", "Beta Strand", "Loop", "Mixed"],
+                # style=var,
+                alpha=0.8,
+                s=70,
+                palette=palette,
+                output_path=pca_analysis_path,
+                file_name="pca_embedding_" + "dssp_bin",
+            )
 
             # Plotting histograms of PC1 and PC2
 
             for var in [
-                "designed_native",
+                # "designed_native",
                 "dssp_bin",
-                "organism_group",
+                # "organism_group",
                 "isoelectric_point_bin",
                 "packing_density_bin",
                 "aggrescan3d_avg_bin",
@@ -321,7 +367,14 @@ for dataset in dataset_list:
                 elif var == "organism_group":
                     pca_transformed_data_filt = pca_transformed_data
 
-                    hue_order = ["Animal", "Bacteria", "Funghi", "Plant", "Other"]
+                    hue_order = [
+                        "Animal",
+                        "Archaea",
+                        "Bacteria",
+                        "Funghi",
+                        "Plant",
+                        "Protozoan",
+                    ]
                     legend_title = "Organism"
 
                 elif var == "isoelectric_point_bin":
@@ -337,7 +390,7 @@ for dataset in dataset_list:
                         "Less than 40",
                         "Between 40 and 60",
                         "Between 60 and 80",
-                        "Greater than 80",
+                        # "Greater than 80",
                     ]
                     legend_title = "Packing Density"
 
@@ -352,7 +405,13 @@ for dataset in dataset_list:
                     ]
                     legend_title = "Aggrescan3D Average Score"
 
-                fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(9, 8))
+                # fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(9, 8))
+                fig, (ax1, ax2) = plt.subplots(
+                    1, 2, figsize=(6, 4), sharex=True, sharey=True
+                )
+
+                ax1.tick_params(axis="both", which="major", labelsize=14)
+                ax2.tick_params(axis="both", which="major", labelsize=14)
 
                 sns.histplot(
                     data=pca_transformed_data_filt,
@@ -367,7 +426,7 @@ for dataset in dataset_list:
                     lw=5,
                     legend=False,
                     ax=ax1,
-                    palette=sns.color_palette("colorblind"),
+                    palette=palette,
                     # kde=True,
                 )
                 sns.histplot(
@@ -383,45 +442,49 @@ for dataset in dataset_list:
                     lw=5,
                     legend=True,
                     ax=ax2,
-                    palette=sns.color_palette("colorblind"),
+                    palette=palette,
                     # kde=True,
                 )
-                sns.histplot(
-                    data=pca_transformed_data_filt,
-                    x="dim2",
-                    hue=var,
-                    hue_order=hue_order,
-                    element="poly",
-                    stat="density",
-                    common_norm=False,
-                    cumulative=True,
-                    fill=False,
-                    lw=5,
-                    legend=False,
-                    ax=ax3,
-                    palette=sns.color_palette("colorblind"),
-                    # kde=True,
-                )
-                sns.histplot(
-                    data=pca_transformed_data_filt,
-                    x="dim3",
-                    hue=var,
-                    hue_order=hue_order,
-                    element="poly",
-                    stat="density",
-                    common_norm=False,
-                    cumulative=True,
-                    fill=False,
-                    lw=5,
-                    legend=False,
-                    ax=ax4,
-                    palette=sns.color_palette("colorblind"),
-                    # kde=True,
-                )
-                ax1.set_xlabel("PC1")
-                ax2.set_xlabel("PC2")
-                ax3.set_xlabel("PC3")
-                ax4.set_xlabel("PC4")
+                # sns.histplot(
+                #     data=pca_transformed_data_filt,
+                #     x="dim2",
+                #     hue=var,
+                #     hue_order=hue_order,
+                #     element="poly",
+                #     stat="density",
+                #     common_norm=False,
+                #     cumulative=True,
+                #     fill=False,
+                #     lw=5,
+                #     legend=False,
+                #     ax=ax3,
+                #     palette=sns.color_palette("colorblind"),
+                #     # kde=True,
+                # )
+                # sns.histplot(
+                #     data=pca_transformed_data_filt,
+                #     x="dim3",
+                #     hue=var,
+                #     hue_order=hue_order,
+                #     element="poly",
+                #     stat="density",
+                #     common_norm=False,
+                #     cumulative=True,
+                #     fill=False,
+                #     lw=5,
+                #     legend=False,
+                #     ax=ax4,
+                #     palette=sns.color_palette("colorblind"),
+                #     # kde=True,
+                # )
+                ax1.set_xlabel("PC1", fontsize=14)
+                ax2.set_xlabel("PC2", fontsize=14)
+
+                ax1.set_ylabel("Density", fontsize=14)
+                ax2.set_ylabel("Density", fontsize=14)
+
+                # ax3.set_xlabel("PC3")
+                # ax4.set_xlabel("PC4")
                 sns.move_legend(
                     ax2,
                     "upper left",
