@@ -9,13 +9,16 @@ from dim_red_tools import *
 # 1. Defining variables------------------------------------------------------------
 
 # Defining the scaling methods list
-scaling_method_list = ["standard", "robust", "minmax"]
+# scaling_method_list = ["standard", "robust", "minmax"]
+scaling_method_list = ["robust"]
 
 # Defining a composition metrics included flag
-comp_flag_list = ["comp", "no_comp"]
+# comp_flag_list = ["comp", "no_comp"]
+comp_flag_list = ["comp"]
 
 # Defining a list of feature selection methods
-feature_selection_list = ["mi", "rf"]
+# feature_selection_list = ["mi", "rf"]
+feature_selection_list = ["mi"]
 
 # Defining feature selection path
 feature_selection_path = "fleishman_scFv_analysis/feature_selection/"
@@ -33,6 +36,9 @@ for i in range(0, pca_num_components):
 
 # Defining hover data for plotly
 hover_data = ["design_name", "dim0", "dim1"]
+
+# Creating a color palette
+palette = sns.color_palette(["#0173b2", "#d55e00", "#029e73", "#cc78bc"], 4)
 
 for scaling_method in scaling_method_list:
     for comp_flag in comp_flag_list:
@@ -145,8 +151,8 @@ for scaling_method in scaling_method_list:
             # 5. Plotting 2d spaces---------------------------------------------------------------------
 
             # Setting theme for plots
-            sns.set_style("ticks")
-            cmap = sns.color_palette("tab10")
+            sns.set_style("whitegrid")
+            # cmap = sns.color_palette("colorblind", as_cmap=True)
 
             plot_pca_plotly(
                 pca_data=pca_transformed_data,
@@ -166,14 +172,14 @@ for scaling_method in scaling_method_list:
                 data=pca_transformed_data,
                 x="dim0",
                 y="dim1",
-                axes_prefix="PCA Dim",
+                axes_prefix="PC",
                 legend_title="",
                 hue="expression_bin_label",
                 hue_order=["Low", "Medium", "High", "PDB"],
                 # style=var,
                 alpha=0.7,
                 s=150,
-                palette=cmap,
+                palette=palette,
                 output_path=pca_scaler_output_path,
                 file_name="pca_embedding_expression_" + feature_selection,
             )

@@ -197,8 +197,7 @@ def plot_roc_curve(
         class_stand_err_auc_list, weights=class_volume_list
     )
 
-    sns.set_style("ticks")
-    sns.color_palette("tab10")
+    sns.set_style("whitegrid")
 
     fig, ax = plt.subplots(figsize=(8, 6))
 
@@ -393,7 +392,9 @@ def run_cross_validation(
         y_score_list=y_score_list,
         model_output_path=model_output_path,
         model_id=model_id,
-        color_list=["#2ca02c", "#1f77b4", "#ff7f0e", "#d62728"],
+        # color_list=["#2ca02c", "#1f77b4", "#ff7f0e", "#d62728"],
+        color_list=["#029e73", "#0173b2", "#d55e00", "#cc78bc"]
+        # color_list=sns.color_palette("colorblind", n_colors=4).as_hex(),
     )
 
     # Adding these to a dictionary

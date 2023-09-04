@@ -20,12 +20,12 @@ predictor_data_path = (
 )
 
 # Setting the file path for the features (DE-STRESS metrics)
-features_data_path = "fleishman_scFv_analysis/data/raw_data/fleishman_destress_data.csv"
+features_data_path = (
+    "fleishman_scFv_analysis/data/raw_data/fleishman_destress_data2.csv"
+)
 
 # Setting the file path for the PDB features (DE-STRESS metrics)
-pdb_features_data_path = (
-    "fleishman_scFv_analysis/data/raw_data/pdb_destress_data_relaxed.csv"
-)
+pdb_features_data_path = "fleishman_scFv_analysis/data/raw_data/pdb_destress_data2.csv"
 
 # Setting the data output path
 processed_data_path = "fleishman_scFv_analysis/data/processed_data/"
@@ -76,7 +76,7 @@ drop_cols = [
     "mass",
     "num_residues",
     "aggrescan3d_total_value",
-    # "rosetta_pro_close",
+    "rosetta_pro_close",
     # "rosetta_omega",
     # "rosetta_total",
     # "rosetta_fa_rep",
@@ -182,6 +182,23 @@ processed_predictor_data.to_csv(
 
 
 # 4. Processing features (DE-STRESS metrics)----------------------------------------------------------
+
+raw_features_data["top_rank_flag"] = np.where(
+    raw_features_data["design_name"].str.contains("rank_001"), 1, 0
+)
+
+raw_features_data["relaxed_flag"] = np.where(
+    raw_features_data["design_name"].str.contains("unrelaxed"), 0, 1
+)
+
+raw_features_data = raw_features_data.loc[
+    (
+        (raw_features_data["top_rank_flag"] == 1)
+        & (raw_features_data["relaxed_flag"] == 0)
+    )
+].reset_index(drop=True)
+
+raw_features_data.drop(["top_rank_flag", "relaxed_flag"], axis=1, inplace=True)
 
 # Processing Fleishman DE-STRESS data
 features_data, design_name_df = process_destress_data(

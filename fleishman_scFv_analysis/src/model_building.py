@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 from model_building_tools import *
 
+
 # 1. Defining variables---------------------------------------------------------
 
 # Defining the scaling methods list

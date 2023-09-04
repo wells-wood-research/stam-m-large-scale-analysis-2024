@@ -151,10 +151,12 @@ def plot_latent_space_2d(
         linewidth=0.2,
         edgecolor="black",
     )
-    plt.xlabel(axes_prefix + " " + x_id, fontsize=18)
-    plt.ylabel(axes_prefix + " " + y_id, fontsize=18)
+    plt.xlabel(axes_prefix + x_id, fontsize=18)
+    plt.ylabel(axes_prefix + y_id, fontsize=18)
     plt.xticks(fontsize=18)
     plt.yticks(fontsize=18)
+    plt.xlim([-6, 11])
+    plt.ylim([-4, 8])
     # sns.move_legend(
     #     plot,
     #     "upper left",
@@ -164,7 +166,7 @@ def plot_latent_space_2d(
     sns.move_legend(
         plot,
         "lower center",
-        bbox_to_anchor=(0.5, -0.4),
+        bbox_to_anchor=(0.5, -0.35),
         frameon=False,
         ncols=6,
         fontsize=16,
@@ -257,7 +259,7 @@ def spectral_plot(
     pca_data_long["dim_id"] = pca_data_long["dim_id"].str.replace("dim", "")
 
     sns.set_style("ticks")
-    sns.color_palette("tab10")
+    cmap = sns.color_palette("colorblind", as_cmap=True)
 
     # Plot the pca spectre for the different sequences
     plot = sns.lineplot(
@@ -269,6 +271,7 @@ def spectral_plot(
         legend="full",
         data=pca_data_long,
         linewidth=4,
+        palette=cmap,
         # alpha=0.9,
     )
     # ax.legend(
