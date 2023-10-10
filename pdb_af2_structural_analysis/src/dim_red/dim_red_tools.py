@@ -60,6 +60,8 @@ def pca_var_explained(data, n_components, file_name, output_path):
     plt.savefig(output_path + file_name + ".png")
     plt.close()
 
+    return var_explained_df
+
 
 # Defining a script to perform Principal Component Analysis (PCA)
 # for a data set and a specified number of principal components
@@ -119,6 +121,7 @@ def perform_pca(
 
 def plot_latent_space_2d(
     data,
+    var_explained_data,
     x,
     y,
     axes_prefix,
@@ -133,6 +136,16 @@ def plot_latent_space_2d(
 ):
     x_id = str(int(x[-1]) + 1)
     y_id = str(int(y[-1]) + 1)
+
+    x_var_explained = var_explained_data["var_explained"][
+        var_explained_data["n_components"] == 0
+    ]
+    y_var_explained = var_explained_data["var_explained"][
+        var_explained_data["n_components"] == 1
+    ]
+
+    x_var_explained_formatted = np.round(x_var_explained.iloc[0], 2) * 100
+    y_var_explained_formatted = np.round(y_var_explained.iloc[0], 2) * 100
 
     # PCA 2d scatter plot
     plot = sns.scatterplot(
@@ -149,12 +162,18 @@ def plot_latent_space_2d(
         linewidth=0.2,
         edgecolor="black",
     )
-    plt.xlabel(axes_prefix + x_id, fontsize=17)
-    plt.ylabel(axes_prefix + y_id, fontsize=17)
+    plt.xlabel(
+        axes_prefix + x_id + " (" + str(np.int64(x_var_explained_formatted)) + "%)",
+        fontsize=17,
+    )
+    plt.ylabel(
+        axes_prefix + y_id + " (" + str(np.int64(y_var_explained_formatted)) + "%)",
+        fontsize=17,
+    )
     plt.xticks(fontsize=17)
     plt.yticks(fontsize=17)
-    plt.xlim([-0.8, 0.9])
-    plt.ylim([-0.7, 0.8])
+    # plt.xlim([-0.8, 0.9])
+    # plt.ylim([-0.7, 0.8])
     # sns.move_legend(
     #     plot,
     #     "upper left",

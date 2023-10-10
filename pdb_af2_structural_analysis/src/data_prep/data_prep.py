@@ -33,6 +33,9 @@ pdb_denovo_protein_labels_path = (
     "pdb_af2_structural_analysis/data/raw_data/pdb/denovo_pdb_ids.csv"
 )
 
+# Defining the file path for the filtered AF2 design names (non redundant 30% sequences)
+af2_non_redudant_file_path = "pdb_af2_structural_analysis/data/raw_data/af2/af2_non_redundant_30/af2_non_redundant_30_seqs.csv"
+
 # Defining file paths for the processed uniprot data sets
 processed_uniprot_data_af2_path = "pdb_af2_structural_analysis/data/processed_data/uniprot/processed_uniprot_data_af2.csv"
 processed_uniprot_data_pdb_path = "pdb_af2_structural_analysis/data/processed_data/uniprot/processed_uniprot_data_pdb.csv"
@@ -159,6 +162,7 @@ organism_other_list = [
 # Defining the labels that we are interested in
 labels = [
     "design_name",
+    "full_sequence",
     "dssp_bin",
     "pdb_or_af2",
     "charge",
@@ -188,6 +192,9 @@ constant_features_threshold = 0.25
 # Reading in raw AF2 DE-STRESS data
 raw_af2_destress_data = pd.read_csv(raw_af2_destress_data_path)
 
+# Reading in non redundant 30 af2 design names
+af2_non_redudant_file = pd.read_csv(af2_non_redudant_file_path)
+
 # Reading in raw PDB DE-STRESS data
 raw_pdb_destress_data = pd.read_csv(raw_pdb_destress_data_path)
 
@@ -198,6 +205,11 @@ processed_uniprot_data_pdb = pd.read_csv(processed_uniprot_data_pdb_path)
 # Renaming data sets
 af2_destress_data = raw_af2_destress_data
 pdb_destress_data = raw_pdb_destress_data
+
+# Filtering AF2 data set by non redundant 30 list
+af2_destress_data = af2_destress_data[
+    af2_destress_data["design_name"].isin(af2_non_redudant_file.design_name.to_list())
+].reset_index(drop=True)
 
 # Creating a pdb or af2 flag
 af2_destress_data["pdb_or_af2"] = "AF2"
@@ -519,6 +531,33 @@ for dataset in dataset_list:
         ],
         default="Unknown",
     )
+
+    # # Adding a new field to create an organism group
+    # destress_data_uniprot["organism_group"] = np.select(
+    #     [
+    #         destress_data_uniprot["organism_scientific_name"].isin(
+    #             organism_animal_list
+    #         ),
+    #         destress_data_uniprot["organism_scientific_name"].isin(
+    #             organism_protozoan_list
+    #         ),
+    #         destress_data_uniprot["organism_scientific_name"].isin(organism_fungi_list),
+    #         destress_data_uniprot["organism_scientific_name"].isin(
+    #             organism_bacteria_list + organism_archaea_list
+    #         ),
+    #         destress_data_uniprot["organism_scientific_name"].isin(organism_plant_list),
+    #         destress_data_uniprot["organism_scientific_name"].isin(organism_other_list),
+    #     ],
+    #     [
+    #         "Animal",
+    #         "Protozoan",
+    #         "Fungi",
+    #         "Bacteria and Archaea",
+    #         "Plant",
+    #         "Other",
+    #     ],
+    #     default="Unknown",
+    # )
 
     # Adding a new field to create an organism group
     destress_data_uniprot["organism_group2"] = np.select(

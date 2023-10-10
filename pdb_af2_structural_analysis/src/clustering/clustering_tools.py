@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
+from sklearn import decomposition
 from scipy.cluster.hierarchy import dendrogram
 
 
@@ -57,20 +58,23 @@ def adj_rand_ind_wssd_plot(data, title, file_name, output_path):
     plt.close()
 
 
-def adj_rand_ind_plot(data, title, hue, file_name, output_path):
+def adj_rand_ind_plot(data, title, file_name, output_path):
     sns.lineplot(
         data=data,
         x="n_clusters",
         y="adj_rand_score",
-        hue=hue,
+        # hue=hue,
         errorbar="sd",
         legend=True,
+        lw=2,
     )
-    plt.xlabel("Number of clusters")
-    plt.ylabel("Adjusted Rand Index")
-    x_ticks = range(data["n_clusters"].min(), data["n_clusters"].max() + 1, 2)
-    plt.xticks(x_ticks)
-    plt.ylim([0, 1.2])
+    plt.xlabel("Number of clusters", fontsize=16)
+    plt.ylabel("Adjusted Rand Index", fontsize=16)
+    # x_ticks = range(data["n_clusters"].min(), data["n_clusters"].max() + 1, 2)
+    plt.xticks(fontsize=16)
+    plt.yticks(fontsize=16)
+    plt.xlim(2, 20)
+    plt.ylim([0, 1])
     plt.title(title)
     plt.savefig(
         output_path + file_name + ".png",
@@ -103,3 +107,108 @@ def plot_dendrogram(model, **kwargs):
 
     # Plot the corresponding dendrogram
     dendrogram(linkage_matrix, **kwargs)
+
+
+# Defining a function to calculate the variance explained by a
+# number of different principal components
+def pca_var_explained(data, n_components, file_name, output_path):
+    # Performing PCA with the specified components
+    pca = decomposition.PCA(n_components=n_components)
+    pca.fit(data)
+
+    # Calculating the variance explained
+    var_explained = pca.explained_variance_ratio_
+
+    # Calculating the cumulative sum
+    var_explained_sum = np.cumsum(var_explained)
+
+    # Calculating list of components
+    components_list = range(0, n_components, 1)
+
+    # Creating dict
+    var_explained_dict = {
+        "n_components": components_list,
+        "var_explained": var_explained,
+        "var_explained_sum": var_explained_sum,
+    }
+
+    # Appending to the data frame
+    var_explained_df = pd.DataFrame(var_explained_dict)
+
+    # Saving as a csv file
+    var_explained_df.to_csv(
+        output_path + file_name + ".csv",
+        index=False,
+    )
+
+    sns.set_theme(style="darkgrid")
+
+    # Plotting the data and saving
+    sns.lineplot(
+        x="n_components",
+        y="var_explained_sum",
+        data=var_explained_df,
+    )
+    plt.title("""Cumulative variance explained by number of principal components""")
+    plt.xlabel("Number of components")
+    plt.ylabel("Cumulative variance explained")
+    plt.savefig(output_path + file_name + ".png")
+    plt.close()
+
+    return var_explained_df
+
+
+# Defining a script to perform Principal Component Analysis (PCA)
+# for a data set and a specified number of principal components
+def perform_pca(
+    data, labels_df, n_components, output_path, file_path, components_file_path
+):
+    # Performing PCA
+    pca_model = decomposition.PCA(n_components=n_components)
+    pca_model.fit(data)
+
+    # Saving contributions of the features to the principal components
+    pca_feat_contr_to_cmpts = pd.DataFrame(
+        np.round(abs(pca_model.components_), 4), columns=data.columns
+    )
+
+    pca_feat_contr_to_cmpts.to_csv(
+        output_path + components_file_path + "_feat_contr_to_cmpts.csv", index=True
+    )
+
+    # Defining the columns dict
+    columns_dict = {}
+
+    # Selecting the 10 largest contributers to each principal component
+    for i in range(0, n_components):
+        pca_components_contr = pca_feat_contr_to_cmpts.iloc[i].nlargest(
+            10, keep="first"
+        )
+        pca_components_contr.to_csv(
+            output_path + components_file_path + str(i) + "_contr.csv", index=True
+        )
+
+        columns_dict[i] = "dim" + str(i)
+
+    # Transforming the data
+    pca_transformed_data = pca_model.transform(data)
+
+    # Converting to data frame and renaming columns
+    pca_transformed_data = pd.DataFrame(pca_transformed_data).rename(
+        columns=columns_dict
+    )
+
+    if labels_df is None:
+        pca_transformed_data = pca_transformed_data
+
+    else:
+        # Adding the labels back
+        pca_transformed_data = pd.concat([labels_df, pca_transformed_data], axis=1)
+
+    # Outputting the transformed data
+    pca_transformed_data.to_csv(
+        output_path + file_path + ".csv",
+        index=False,
+    )
+
+    return pca_transformed_data

@@ -94,7 +94,7 @@ for dataset in dataset_list:
 
             # 4. Performing PCA--------------------------------------------------------------------------
 
-            pca_var_explained(
+            var_explained_df = pca_var_explained(
                 data=processed_destress_data,
                 n_components=n_components,
                 file_name="pca_var_explained",
@@ -197,23 +197,26 @@ for dataset in dataset_list:
                 #     file_name="pca_embedding_" + var + ".html",
                 # )
 
-                # plot_latent_space_2d(
-                #     data=pca_transformed_data.sort_values(by=var, ascending=True),
-                #     x="dim0",
-                #     y="dim1",
-                #     axes_prefix="PC",
-                #     legend_title=labels_formatted[i],
-                #     hue=var,
-                #     # hue_order=pca_transformed_data.sort_values(by=var, ascending=False)[var]
-                #     # .unique()
-                #     # .tolist(),
-                #     # style=var,
-                #     alpha=0.8,
-                #     s=70,
-                #     palette=cmap,
-                #     output_path=pca_analysis_path,
-                #     file_name="pca_embedding_" + var,
-                # )
+                plot_latent_space_2d(
+                    data=pca_transformed_data.sort_values(by=var, ascending=True),
+                    var_explained_data=var_explained_df,
+                    x="dim0",
+                    y="dim1",
+                    axes_prefix="PC",
+                    legend_title=labels_formatted[i],
+                    hue=var,
+                    hue_order=pca_transformed_data.sort_values(by=var, ascending=False)[
+                        var
+                    ]
+                    .unique()
+                    .tolist(),
+                    # style=var,
+                    alpha=0.8,
+                    s=70,
+                    palette=cmap,
+                    output_path=pca_analysis_path,
+                    file_name="pca_embedding_" + var,
+                )
 
             org_list_plant = [
                 "Arabidopsis thaliana",
@@ -325,6 +328,7 @@ for dataset in dataset_list:
 
             plot_latent_space_2d(
                 data=data_filtered.sort_values(by="dssp_bin", ascending=False),
+                var_explained_data=var_explained_df,
                 x="dim0",
                 y="dim1",
                 axes_prefix="PC",
@@ -341,160 +345,160 @@ for dataset in dataset_list:
 
             # Plotting histograms of PC1 and PC2
 
-            for var in [
-                # "designed_native",
-                "dssp_bin",
-                # "organism_group",
-                "isoelectric_point_bin",
-                "packing_density_bin",
-                "aggrescan3d_avg_bin",
-            ]:
-                if var == "designed_native":
-                    pca_transformed_data_filt = pca_transformed_data
+            # for var in [
+            #     # "designed_native",
+            #     "dssp_bin",
+            #     # "organism_group",
+            #     "isoelectric_point_bin",
+            #     "packing_density_bin",
+            #     "aggrescan3d_avg_bin",
+            # ]:
+            #     if var == "designed_native":
+            #         pca_transformed_data_filt = pca_transformed_data
 
-                    hue_order = ["Designed", "Native"]
-                    legend_title = "Designed or Native"
+            #         hue_order = ["Designed", "Native"]
+            #         legend_title = "Designed or Native"
 
-                elif var == "dssp_bin":
-                    pca_transformed_data_filt = pca_transformed_data[
-                        ~pca_transformed_data["dssp_bin"]
-                        .isin(["Bend", "Hbond Turn", "3 10 Helix"])
-                        .reset_index(drop=True)
-                    ]
-                    hue_order = ["Alpha Helix", "Beta Strand", "Loop", "Mixed"]
-                    legend_title = "Secondary Structure"
+            #     elif var == "dssp_bin":
+            #         pca_transformed_data_filt = pca_transformed_data[
+            #             ~pca_transformed_data["dssp_bin"]
+            #             .isin(["Bend", "Hbond Turn", "3 10 Helix"])
+            #             .reset_index(drop=True)
+            #         ]
+            #         hue_order = ["Alpha Helix", "Beta Strand", "Loop", "Mixed"]
+            #         legend_title = "Secondary Structure"
 
-                elif var == "organism_group":
-                    pca_transformed_data_filt = pca_transformed_data
+            #     elif var == "organism_group":
+            #         pca_transformed_data_filt = pca_transformed_data
 
-                    hue_order = [
-                        "Animal",
-                        "Archaea",
-                        "Bacteria",
-                        "Funghi",
-                        "Plant",
-                        "Protozoan",
-                    ]
-                    legend_title = "Organism"
+            #         hue_order = [
+            #             "Animal",
+            #             "Archaea",
+            #             "Bacteria",
+            #             "Funghi",
+            #             "Plant",
+            #             "Protozoan",
+            #         ]
+            #         legend_title = "Organism"
 
-                elif var == "isoelectric_point_bin":
-                    pca_transformed_data_filt = pca_transformed_data
+            #     elif var == "isoelectric_point_bin":
+            #         pca_transformed_data_filt = pca_transformed_data
 
-                    hue_order = ["Less than 6", "Between 6 and 8", "Greater than 8"]
-                    legend_title = "Isoelectric Point"
+            #         hue_order = ["Less than 6", "Between 6 and 8", "Greater than 8"]
+            #         legend_title = "Isoelectric Point"
 
-                elif var == "packing_density_bin":
-                    pca_transformed_data_filt = pca_transformed_data
+            #     elif var == "packing_density_bin":
+            #         pca_transformed_data_filt = pca_transformed_data
 
-                    hue_order = [
-                        "Less than 40",
-                        "Between 40 and 60",
-                        "Between 60 and 80",
-                        # "Greater than 80",
-                    ]
-                    legend_title = "Packing Density"
+            #         hue_order = [
+            #             "Less than 40",
+            #             "Between 40 and 60",
+            #             "Between 60 and 80",
+            #             # "Greater than 80",
+            #         ]
+            #         legend_title = "Packing Density"
 
-                elif var == "aggrescan3d_avg_bin":
-                    pca_transformed_data_filt = pca_transformed_data
+            #     elif var == "aggrescan3d_avg_bin":
+            #         pca_transformed_data_filt = pca_transformed_data
 
-                    hue_order = [
-                        "Less than -2",
-                        "Between -2 and 0",
-                        "Between 0 and 2",
-                        "Greater than 2",
-                    ]
-                    legend_title = "Aggrescan3D Average Score"
+            #         hue_order = [
+            #             "Less than -2",
+            #             "Between -2 and 0",
+            #             "Between 0 and 2",
+            #             "Greater than 2",
+            #         ]
+            #         legend_title = "Aggrescan3D Average Score"
 
-                # fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(9, 8))
-                fig, (ax1, ax2) = plt.subplots(
-                    1, 2, figsize=(6, 4), sharex=True, sharey=True
-                )
+            #     # fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(9, 8))
+            #     fig, (ax1, ax2) = plt.subplots(
+            #         1, 2, figsize=(6, 4), sharex=True, sharey=True
+            #     )
 
-                ax1.tick_params(axis="both", which="major", labelsize=14)
-                ax2.tick_params(axis="both", which="major", labelsize=14)
+            #     ax1.tick_params(axis="both", which="major", labelsize=14)
+            #     ax2.tick_params(axis="both", which="major", labelsize=14)
 
-                sns.histplot(
-                    data=pca_transformed_data_filt,
-                    x="dim0",
-                    hue=var,
-                    hue_order=hue_order,
-                    element="poly",
-                    stat="density",
-                    common_norm=False,
-                    cumulative=True,
-                    fill=False,
-                    lw=5,
-                    legend=False,
-                    ax=ax1,
-                    palette=palette,
-                    # kde=True,
-                )
-                sns.histplot(
-                    data=pca_transformed_data_filt,
-                    x="dim1",
-                    hue=var,
-                    hue_order=hue_order,
-                    element="poly",
-                    stat="density",
-                    common_norm=False,
-                    cumulative=True,
-                    fill=False,
-                    lw=5,
-                    legend=True,
-                    ax=ax2,
-                    palette=palette,
-                    # kde=True,
-                )
-                # sns.histplot(
-                #     data=pca_transformed_data_filt,
-                #     x="dim2",
-                #     hue=var,
-                #     hue_order=hue_order,
-                #     element="poly",
-                #     stat="density",
-                #     common_norm=False,
-                #     cumulative=True,
-                #     fill=False,
-                #     lw=5,
-                #     legend=False,
-                #     ax=ax3,
-                #     palette=sns.color_palette("colorblind"),
-                #     # kde=True,
-                # )
-                # sns.histplot(
-                #     data=pca_transformed_data_filt,
-                #     x="dim3",
-                #     hue=var,
-                #     hue_order=hue_order,
-                #     element="poly",
-                #     stat="density",
-                #     common_norm=False,
-                #     cumulative=True,
-                #     fill=False,
-                #     lw=5,
-                #     legend=False,
-                #     ax=ax4,
-                #     palette=sns.color_palette("colorblind"),
-                #     # kde=True,
-                # )
-                ax1.set_xlabel("PC1", fontsize=14)
-                ax2.set_xlabel("PC2", fontsize=14)
+            #     sns.histplot(
+            #         data=pca_transformed_data_filt,
+            #         x="dim0",
+            #         hue=var,
+            #         hue_order=hue_order,
+            #         element="poly",
+            #         stat="density",
+            #         common_norm=False,
+            #         cumulative=True,
+            #         fill=False,
+            #         lw=5,
+            #         legend=False,
+            #         ax=ax1,
+            #         palette=palette,
+            #         # kde=True,
+            #     )
+            #     sns.histplot(
+            #         data=pca_transformed_data_filt,
+            #         x="dim1",
+            #         hue=var,
+            #         hue_order=hue_order,
+            #         element="poly",
+            #         stat="density",
+            #         common_norm=False,
+            #         cumulative=True,
+            #         fill=False,
+            #         lw=5,
+            #         legend=True,
+            #         ax=ax2,
+            #         palette=palette,
+            #         # kde=True,
+            #     )
+            #     # sns.histplot(
+            #     #     data=pca_transformed_data_filt,
+            #     #     x="dim2",
+            #     #     hue=var,
+            #     #     hue_order=hue_order,
+            #     #     element="poly",
+            #     #     stat="density",
+            #     #     common_norm=False,
+            #     #     cumulative=True,
+            #     #     fill=False,
+            #     #     lw=5,
+            #     #     legend=False,
+            #     #     ax=ax3,
+            #     #     palette=sns.color_palette("colorblind"),
+            #     #     # kde=True,
+            #     # )
+            #     # sns.histplot(
+            #     #     data=pca_transformed_data_filt,
+            #     #     x="dim3",
+            #     #     hue=var,
+            #     #     hue_order=hue_order,
+            #     #     element="poly",
+            #     #     stat="density",
+            #     #     common_norm=False,
+            #     #     cumulative=True,
+            #     #     fill=False,
+            #     #     lw=5,
+            #     #     legend=False,
+            #     #     ax=ax4,
+            #     #     palette=sns.color_palette("colorblind"),
+            #     #     # kde=True,
+            #     # )
+            #     ax1.set_xlabel("PC1", fontsize=14)
+            #     ax2.set_xlabel("PC2", fontsize=14)
 
-                ax1.set_ylabel("Density", fontsize=14)
-                ax2.set_ylabel("Density", fontsize=14)
+            #     ax1.set_ylabel("Density", fontsize=14)
+            #     ax2.set_ylabel("Density", fontsize=14)
 
-                # ax3.set_xlabel("PC3")
-                # ax4.set_xlabel("PC4")
-                sns.move_legend(
-                    ax2,
-                    "upper left",
-                    bbox_to_anchor=(1, 1),
-                    frameon=False,
-                    title=legend_title,
-                )
-                plt.savefig(
-                    pca_analysis_path + "pca_hist_" + var + ".png",
-                    bbox_inches="tight",
-                    dpi=600,
-                )
-                plt.close()
+            #     # ax3.set_xlabel("PC3")
+            #     # ax4.set_xlabel("PC4")
+            #     sns.move_legend(
+            #         ax2,
+            #         "upper left",
+            #         bbox_to_anchor=(1, 1),
+            #         frameon=False,
+            #         title=legend_title,
+            #     )
+            #     plt.savefig(
+            #         pca_analysis_path + "pca_hist_" + var + ".png",
+            #         bbox_inches="tight",
+            #         dpi=600,
+            #     )
+            #     plt.close()

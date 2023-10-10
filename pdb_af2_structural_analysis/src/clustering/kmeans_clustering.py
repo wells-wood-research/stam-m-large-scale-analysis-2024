@@ -15,6 +15,17 @@ from sklearn import metrics
 from clustering_tools import *
 
 
+# default_font = plt.rcParams["font.family"]
+# print("Default font:", default_font)
+
+
+# Set the font to Arial
+plt.rcParams["font.family"] = "Arial"
+
+
+print(plt.rcParams["font.family"])
+
+
 # 1. Defining variables----------------------------------------------------------------------------
 
 # Defining the data set list
@@ -28,7 +39,7 @@ iso_for_contamination = 0.00
 scaling_method_list = ["standard", "robust", "minmax"]
 
 # Defining the number of principal components
-n_pca_components = 6
+n_pca_components = 2
 
 # Defining the number of clusters
 n_clusters_list = range(2, 21, 1)
@@ -36,8 +47,8 @@ n_clusters_list = range(2, 21, 1)
 # Defining the number of kmeans initialisations
 n_inits = 100
 
-# Defining the different linkage metrics for
-agg_linkage_list = ["single", "average", "complete", "ward"]
+# Defining the different linkage metrics for hieracrhcial clustering
+linkage_list = ["single", "average", "complete", "ward"]
 
 # Creating a data frame to gather the clustering results
 clustering_results_master = pd.DataFrame(
@@ -46,7 +57,7 @@ clustering_results_master = pd.DataFrame(
         "dataset",
         "scaler",
         "kmeans_init",
-        "agg_linkage",
+        "linkage",
         "n_clusters",
         "weighted_ssd",
         "adj_rand_score",
@@ -58,8 +69,15 @@ clustering_overall_results_path = (
     "pdb_af2_structural_analysis/analysis/clustering/af2/iso_for_0.0/"
 )
 
-# Agglomerative clustering dendograms
-agg_clustering_dendo_path = clustering_overall_results_path + "agg_dendo_plots/"
+# Grouping var
+group_var = "organism_group2"
+
+if group_var == "organism_group":
+    group_label = "org_group"
+
+elif group_var == "organism_group2":
+    group_label = "euk_prok"
+
 
 # 2. Looping through the different data sets------------------------------------------------------
 
@@ -79,7 +97,7 @@ for dataset in dataset_list:
 
         # Defining the pca analysis path
         pca_analysis_path = (
-            "pdb_af2_structural_analysis/analysis/dim_red/pca/"
+            "pdb_af2_structural_analysis/analysis/clustering/"
             + dataset
             + "/"
             + "iso_for_"
@@ -101,9 +119,6 @@ for dataset in dataset_list:
             + "/"
         )
 
-        # Defining the path for the transformed PCA data
-        pca_transformed_data_path = pca_analysis_path + "pca_transformed_data.csv"
-
         # Defining file paths for labels
         labels_df_path = processed_data_path + "labels.csv"
 
@@ -114,56 +129,137 @@ for dataset in dataset_list:
             processed_data_path + "processed_destress_data_scaled.csv"
         )
 
-        # Reading in pca transformed data
-        pca_transformed_data = pd.read_csv(pca_transformed_data_path)
-
         # Reading in labels
         labels_df = pd.read_csv(labels_df_path)
-
-        # Extracting dimension columns
-        dim_columns = [
-            i
-            for i in pca_transformed_data.columns.to_list()
-            if i not in labels_df.columns.to_list()
-        ]
 
         processed_data_joined = pd.concat(
             [
                 processed_data,
-                labels_df[["organism_scientific_name", "organism_group"]],
+                labels_df[["organism_scientific_name", group_var]],
             ],
             axis=1,
         )
 
         # Average each principal component grouped by organism
         processed_data_avg = processed_data_joined.groupby(
-            ["organism_scientific_name", "organism_group"], as_index=False
+            ["organism_scientific_name", group_var], as_index=False
         )[processed_data.columns.to_list()].mean()
 
-        # Average each principal component grouped by organism
-        pca_transformed_data_avg = pca_transformed_data.groupby(
-            ["organism_scientific_name", "organism_group"], as_index=False
-        )[dim_columns].mean()
-
-        organism_group_labels = processed_data_avg["organism_group"].to_list()
+        organism_group_labels = processed_data_avg[group_var].to_list()
 
         organism_labels = processed_data_avg["organism_scientific_name"].to_list()
 
+        labels = processed_data_avg[["organism_scientific_name", group_var]]
+
         processed_data_avg.drop(
-            ["organism_scientific_name", "organism_group"], inplace=True, axis=1
+            ["organism_scientific_name", group_var], inplace=True, axis=1
         )
 
-        # # Filtering PCA by the numbetr of PCA components that were selected
-        # pca_transformed_data_filt = pca_transformed_data_avg.iloc[
-        #     :, 2 : n_pca_components + 2
-        # ]
+        # Performing PCA
+        var_explained_df = pca_var_explained(
+            data=processed_data_avg,
+            n_components=8,
+            file_name="pca_var_explained_nonredund",
+            output_path=pca_analysis_path,
+        )
+
+        pca_transformed_data = perform_pca(
+            data=processed_data_avg,
+            labels_df=labels,
+            n_components=8,
+            output_path=pca_analysis_path,
+            file_path="pca_transformed_data",
+            components_file_path="comp_contrib_nonredund_" + group_label,
+        )
+
+        sns.set_style("whitegrid")
+
+        plt.figure(figsize=(6, 5))
+
+        x_var_explained = var_explained_df["var_explained"][
+            var_explained_df["n_components"] == 0
+        ]
+        y_var_explained = var_explained_df["var_explained"][
+            var_explained_df["n_components"] == 1
+        ]
+
+        x_var_explained_formatted = np.round(x_var_explained.iloc[0], 2) * 100
+        y_var_explained_formatted = np.round(y_var_explained.iloc[0], 2) * 100
+
+        plot = sns.scatterplot(
+            data=pca_transformed_data.sort_values(by=group_var, ascending=True),
+            x="dim0",
+            y="dim1",
+            alpha=0.8,
+            s=150,
+            hue=group_var,
+            legend=True,
+            linewidth=0.2,
+            edgecolor="black",
+            palette=sns.color_palette("colorblind"),
+        )
+        plt.xlabel(
+            "PC1 (" + str(np.int64(x_var_explained_formatted)) + "%)", fontsize=16
+        )
+        plt.ylabel(
+            "PC2 (" + str(np.int64(y_var_explained_formatted)) + "%)", fontsize=16
+        )
+        # plt.title(
+        #     "PCA on avg DE-STRESS metrics - "
+        #     + scaling_method
+        #     + " scaler \n - "
+        #     + group_label,
+        #     fontsize=13,
+        # )
+        plt.xlim([-1.5, 1.5])
+        plt.ylim([-1, 2])
+        plt.xticks(fontsize=16)
+        plt.yticks(fontsize=16)
+        sns.move_legend(
+            plot,
+            loc="lower center",
+            bbox_to_anchor=(0.5, -0.3),
+            ncols=2,
+            frameon=False,
+            title="",
+            # title_fontsize=16,
+            fontsize=16,
+        )
+        plt.savefig(
+            pca_analysis_path + "pca_embedding_12_nonredund_" + group_label + ".png",
+            bbox_inches="tight",
+            dpi=600,
+        )
+        plt.close()
+
+        # Defining hiver data for plotly
+        hover_data = ["organism_scientific_name", "dim0", "dim1"]
+
+        fig = px.scatter(
+            pca_transformed_data,
+            x="dim0",
+            y="dim1",
+            color=group_var,
+            opacity=0.9,
+            hover_data=hover_data,
+            labels={
+                "dim0": "PC1",
+                "dim1": "PC2",
+            },
+            # palette=sns.color_palette("colorblind"),
+        )
+        fig.update_traces(
+            marker=dict(size=10, line=dict(width=0.8)),
+            selector=dict(mode="markers"),
+        )
+        fig.write_html(
+            pca_analysis_path + "pca_embedding_12_nonredund_" + group_label + ".html"
+        )
 
         # 4. Running different initialisations of k means--------------------------------------------
 
         for n_clusters in n_clusters_list:
             for init in range(0, n_inits, 1):
-                # Kmeans
-
                 # Generating a random integer
                 rand_int = np.random.randint(0, high=100000, size=1)[0]
 
@@ -195,7 +291,7 @@ for dataset in dataset_list:
                         "model": "kmeans",
                         "dataset": dataset,
                         "scaler": scaling_method,
-                        "agg_linkage": None,
+                        "linkage": None,
                         "kmeans_init": init,
                         "n_clusters": n_clusters,
                         "weighted_ssd": weighted_ssd,
@@ -213,37 +309,38 @@ for dataset in dataset_list:
 
             # Agglomerative clustering
 
-            for agg_linkage in agg_linkage_list:
+            for linkage in linkage_list:
                 # Setting up agglomerative clustering
                 model = AgglomerativeClustering(
                     n_clusters=n_clusters,
-                    linkage=agg_linkage,
+                    linkage=linkage,
                     compute_distances=True,
                 )
                 model_fit = model.fit(processed_data_avg)
 
-                plt.figure(figsize=(9, 8))
-                plot_dendrogram(
-                    model_fit,
-                    truncate_mode=None,
-                    labels=organism_labels,
-                    orientation="left",
-                    leaf_font_size=8,
-                )
-                plt.xticks(fontsize=10)
-                plt.savefig(
-                    agg_clustering_dendo_path
-                    + "agg_dendo_"
-                    + scaling_method
-                    + "_nclusters-"
-                    + str(n_clusters)
-                    + "_link-"
-                    + agg_linkage
-                    + ".png",
-                    bbox_inches="tight",
-                    dpi=600,
-                )
-                plt.close()
+                # plt.figure(figsize=(9, 8))
+                # plot_dendrogram(
+                #     model_fit,
+                #     truncate_mode=None,
+                #     labels=organism_labels,
+                #     orientation="left",
+                #     leaf_font_size=8,
+                # )
+                # plt.xticks(fontsize=10)
+                # plt.savefig(
+                #     clustering_output_path
+                #     + "hierarchical_dendograms_nonredund/"
+                #     + "dendo_nclusters-"
+                #     + str(n_clusters)
+                #     + "_link-"
+                #     + linkage
+                #     + "_"
+                #     + group_label
+                #     + ".png",
+                #     bbox_inches="tight",
+                #     dpi=600,
+                # )
+                # plt.close()
 
                 # Extracting the labels
                 predicted_labels = model_fit.labels_
@@ -266,7 +363,7 @@ for dataset in dataset_list:
                         "dataset": dataset,
                         "scaler": scaling_method,
                         "kmeans_init": None,
-                        "agg_linkage": agg_linkage,
+                        "linkage": linkage,
                         "n_clusters": n_clusters,
                         "weighted_ssd": weighted_ssd,
                         "adj_rand_score": adj_rand_score,
@@ -282,7 +379,10 @@ for dataset in dataset_list:
                 )
 
 clustering_results_master.to_csv(
-    clustering_overall_results_path + "clustering_results_master_destress_6groups.csv",
+    clustering_overall_results_path
+    + "clustering_results_master_destress_nonredund_"
+    + group_label
+    + ".csv",
     index=False,
 )
 
@@ -297,76 +397,62 @@ agglomerative_clustering_results = clustering_results_master[
 
 
 # Plotting the average weighted_ssd and adj_rand_score by scaler and number of clusters
-# for k means
-clustering_results_minmax = kmeans_clustering_results[
-    kmeans_clustering_results["scaler"] == "minmax"
-].reset_index(drop=True)
+# for k means and adj_rand_score by scaler and number of clusters for hierarchical clustering
+for scaling_method in scaling_method_list:
+    # Output path
+    clustering_output_path = (
+        "pdb_af2_structural_analysis/analysis/clustering/"
+        + dataset
+        + "/"
+        + "iso_for_"
+        + str(iso_for_contamination)
+        + "/"
+        + scaling_method
+        + "/"
+    )
+    kmeans_clustering_results_scaler = kmeans_clustering_results[
+        kmeans_clustering_results["scaler"] == scaling_method
+    ].reset_index(drop=True)
 
-adj_rand_ind_wssd_plot(
-    data=clustering_results_minmax,
-    title="KMeans " + str(n_inits) + " inits - Minmax Scaler - Organism Groups",
-    file_name="kmeans_eval_minmax_destress_6groups",
-    output_path=clustering_overall_results_path,
-)
+    # adj_rand_ind_plot(
+    #     data=kmeans_clustering_results_scaler,
+    #     title="KMeans "
+    #     + str(n_inits)
+    #     + " inits - "
+    #     + scaling_method
+    #     + " scaler - "
+    #     + group_label,
+    #     file_name="kmeans_eval_"
+    #     + scaling_method
+    #     + "_destress_nonredund_"
+    #     + group_label,
+    #     output_path=clustering_output_path,
+    # )
 
-clustering_results_robust = kmeans_clustering_results[
-    kmeans_clustering_results["scaler"] == "robust"
-].reset_index(drop=True)
+    plt.figure(figsize=(6, 5))
 
-adj_rand_ind_wssd_plot(
-    data=clustering_results_robust,
-    title="KMeans " + str(n_inits) + " inits - Robust Scaler - Organism Groups",
-    file_name="kmeans_eval_robust_destress_6groups",
-    output_path=clustering_overall_results_path,
-)
+    adj_rand_ind_plot(
+        data=kmeans_clustering_results_scaler,
+        title="",
+        file_name="kmeans_eval_"
+        + scaling_method
+        + "_destress_nonredund_"
+        + group_label,
+        # hue="group_var",
+        output_path=clustering_output_path,
+    )
 
-clustering_results_standard = kmeans_clustering_results[
-    kmeans_clustering_results["scaler"] == "standard"
-].reset_index(drop=True)
+    # agg_clustering_results_scaler = agglomerative_clustering_results[
+    #     agglomerative_clustering_results["scaler"] == scaling_method
+    # ].reset_index(drop=True)
 
-adj_rand_ind_wssd_plot(
-    data=clustering_results_standard,
-    title="KMeans " + str(n_inits) + " inits - Standard Scaler - Organism Groups",
-    file_name="kmeans_eval_standard_destress_6groups",
-    output_path=clustering_overall_results_path,
-)
-
-
-# Plotting the average weighted_ssd and adj_rand_score by scaler
-# for agglomerative clustering
-
-clustering_results_minmax = agglomerative_clustering_results[
-    agglomerative_clustering_results["scaler"] == "minmax"
-].reset_index(drop=True)
-
-adj_rand_ind_plot(
-    data=clustering_results_minmax,
-    title="Agglomerative - Minmax Scaler - Organism Groups",
-    hue="agg_linkage",
-    file_name="agg_eval_minmax_destress_6groups",
-    output_path=clustering_overall_results_path,
-)
-
-clustering_results_robust = agglomerative_clustering_results[
-    agglomerative_clustering_results["scaler"] == "robust"
-].reset_index(drop=True)
-
-adj_rand_ind_plot(
-    data=clustering_results_robust,
-    title="Agglomerative - Robust Scaler - Organism Groups",
-    hue="agg_linkage",
-    file_name="agg_eval_robust_destress_6groups",
-    output_path=clustering_overall_results_path,
-)
-
-clustering_results_standard = agglomerative_clustering_results[
-    agglomerative_clustering_results["scaler"] == "standard"
-].reset_index(drop=True)
-
-adj_rand_ind_plot(
-    data=clustering_results_standard,
-    title="Agglomerative - Standard Scaler - Organism Groups",
-    hue="agg_linkage",
-    file_name="agg_eval_standard_destress_6groups",
-    output_path=clustering_overall_results_path,
-)
+    # adj_rand_ind_plot(
+    #     data=agg_clustering_results_scaler,
+    #     title="Hierarchical - " + scaling_method + " scaler - " + group_label,
+    #     hue="linkage",
+    #     file_name="hierarchical_eval_"
+    #     + scaling_method
+    #     + "_destress_nonredund_"
+    #     + group_label,
+    #     output_path=clustering_output_path,
+    # )
