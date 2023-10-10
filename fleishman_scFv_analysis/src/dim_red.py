@@ -9,12 +9,12 @@ from dim_red_tools import *
 # 1. Defining variables------------------------------------------------------------
 
 # Defining the scaling methods list
-# scaling_method_list = ["standard", "robust", "minmax"]
-scaling_method_list = ["robust"]
+scaling_method_list = ["standard", "robust", "minmax"]
+# scaling_method_list = ["robust"]
 
 # Defining a composition metrics included flag
-# comp_flag_list = ["comp", "no_comp"]
-comp_flag_list = ["comp"]
+comp_flag_list = ["comp", "no_comp"]
+# comp_flag_list = ["comp"]
 
 # Defining a list of feature selection methods
 # feature_selection_list = ["mi", "rf"]
@@ -132,7 +132,7 @@ for scaling_method in scaling_method_list:
 
             print(joined_y_data)
 
-            pca_var_explained(
+            var_explained_df = pca_var_explained(
                 data=joined_X_data,
                 n_components=pca_num_components,
                 file_name="pca_var_explained_" + feature_selection,
@@ -170,6 +170,7 @@ for scaling_method in scaling_method_list:
 
             plot_latent_space_2d(
                 data=pca_transformed_data,
+                var_explained_data=var_explained_df,
                 x="dim0",
                 y="dim1",
                 axes_prefix="PC",

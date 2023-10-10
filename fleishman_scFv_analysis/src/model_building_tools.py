@@ -393,8 +393,8 @@ def run_cross_validation(
         model_output_path=model_output_path,
         model_id=model_id,
         # color_list=["#2ca02c", "#1f77b4", "#ff7f0e", "#d62728"],
-        color_list=["#029e73", "#0173b2", "#d55e00", "#cc78bc"]
-        # color_list=sns.color_palette("colorblind", n_colors=4).as_hex(),
+        color_list=["#029e73", "#0173b2", "#d55e00", "#949494"]
+        # color_list=sns.color_palette("colorblind", n_colors=6).as_hex(),
     )
 
     # Adding these to a dictionary
