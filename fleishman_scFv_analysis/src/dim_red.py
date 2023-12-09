@@ -17,8 +17,8 @@ comp_flag_list = ["comp", "no_comp"]
 # comp_flag_list = ["comp"]
 
 # Defining a list of feature selection methods
-# feature_selection_list = ["mi", "rf"]
-feature_selection_list = ["mi"]
+feature_selection_list = ["mi", "rf"]
+# feature_selection_list = ["mi"]
 
 # Defining feature selection path
 feature_selection_path = "fleishman_scFv_analysis/feature_selection/"

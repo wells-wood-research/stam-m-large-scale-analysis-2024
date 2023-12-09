@@ -10,11 +10,10 @@ from sklearn.preprocessing import MinMaxScaler, StandardScaler, RobustScaler
 
 # Defining the data set list
 # dataset_list = ["pdb", "af2", "both"]
-dataset_list = ["af2"]
+dataset_list = ["pdb"]
 
 # Defining a list of values for isolation forest
 # outlier detection contamination factor
-# iso_for_contamination_list = [0.00, 0.01, 0.02, 0.03, 0.04, 0.05]
 iso_for_contamination_list = [0.0]
 
 # Defining the scaling methods list
@@ -35,6 +34,14 @@ pdb_denovo_protein_labels_path = (
 
 # Defining the file path for the filtered AF2 design names (non redundant 30% sequences)
 af2_non_redudant_file_path = "pdb_af2_structural_analysis/data/raw_data/af2/af2_non_redundant_30/af2_non_redundant_30_seqs.csv"
+
+# Defining the file path for the plddt scores
+af2_plddt_scores_path = "pdb_af2_structural_analysis/data/raw_data/af2/plddt_scores.csv"
+
+# Defining the file path for the de-stress data of af2 structural models of designed proteins
+raw_af2_designed_pdbs_destress_data_path = (
+    "pdb_af2_structural_analysis/data/raw_data/af2/destress_data_af2_designed_pdbs.csv"
+)
 
 # Defining file paths for the processed uniprot data sets
 processed_uniprot_data_af2_path = "pdb_af2_structural_analysis/data/processed_data/uniprot/processed_uniprot_data_af2.csv"
@@ -90,6 +97,10 @@ drop_cols = [
     "rosetta_fa_rep",
     "evoef2_total",
     "evoef2_interS_total",
+    "rosetta_rama_prepro",
+    "rosetta_p_aa_pp",
+    "evoef2_ref_total",
+    # "Mean_PLDDT",
 ]
 
 # Defining the organism groups
@@ -178,6 +189,7 @@ labels = [
     "organism_group",
     "organism_group2",
     "designed_native",
+    # "Mean_PLDDT",
 ]
 
 # Defining a threshold for the spearman correlation coeffient
@@ -195,6 +207,43 @@ raw_af2_destress_data = pd.read_csv(raw_af2_destress_data_path)
 # Reading in non redundant 30 af2 design names
 af2_non_redudant_file = pd.read_csv(af2_non_redudant_file_path)
 
+# # Reading in the plddt scores for the af2 structural models
+# af2_plddt_scores = pd.read_csv(af2_plddt_scores_path)
+# af2_plddt_scores["design_name"] = (
+#     af2_plddt_scores["Filename"].str.replace(".pdb", "").astype(str)
+# )
+
+# # Joining this score onto the af2 structural model data set
+# raw_af2_destress_data = raw_af2_destress_data.merge(
+#     af2_plddt_scores[["design_name", "Mean_PLDDT"]], on="design_name", how="left"
+# )
+
+# # Reading in raw destress data for af2 models of designed pdbs
+# raw_af2_designed_pdbs_destress_data = pd.read_csv(
+#     raw_af2_designed_pdbs_destress_data_path
+# )
+
+# # Creating a rank field
+# raw_af2_designed_pdbs_destress_data["rank"] = raw_af2_designed_pdbs_destress_data[
+#     "design_name"
+# ].str.extract(f"{'rank_00'}(.)", expand=False)
+
+# # Filtering for rank 1 models
+# raw_af2_designed_pdbs_destress_data = raw_af2_designed_pdbs_destress_data[
+#     raw_af2_designed_pdbs_destress_data["rank"] == "1"
+# ].reset_index(drop=True)
+
+# raw_af2_designed_pdbs_destress_data.drop(["rank"], inplace=True, axis=1)
+
+# raw_af2_designed_pdbs_destress_data["designed_native"] = "designed"
+# raw_af2_destress_data["designed_native"] = "native"
+
+# # Joining onto the rest of the af2 destress data
+# raw_af2_destress_data = pd.concat(
+#     [raw_af2_destress_data, raw_af2_designed_pdbs_destress_data], axis=0
+# ).reset_index(drop=True)
+
+
 # Reading in raw PDB DE-STRESS data
 raw_pdb_destress_data = pd.read_csv(raw_pdb_destress_data_path)
 
@@ -206,10 +255,16 @@ processed_uniprot_data_pdb = pd.read_csv(processed_uniprot_data_pdb_path)
 af2_destress_data = raw_af2_destress_data
 pdb_destress_data = raw_pdb_destress_data
 
-# Filtering AF2 data set by non redundant 30 list
-af2_destress_data = af2_destress_data[
-    af2_destress_data["design_name"].isin(af2_non_redudant_file.design_name.to_list())
-].reset_index(drop=True)
+# # Filtering AF2 data set by non redundant 30 list
+# af2_destress_data = af2_destress_data[
+#     af2_destress_data["design_name"].isin(af2_non_redudant_file.design_name.to_list())
+# ].reset_index(drop=True)
+
+# # Filtering AF2 data set by removing low quality models
+# af2_destress_data = af2_destress_data[
+#     af2_destress_data["Mean_PLDDT"] >= 70
+# ].reset_index(drop=True)
+
 
 # Creating a pdb or af2 flag
 af2_destress_data["pdb_or_af2"] = "AF2"
@@ -598,6 +653,16 @@ for dataset in dataset_list:
         file_path="labels",
     )
 
+    # avg_plddt_org = destress_data_uniprot.groupby("organism_scientific_name")[
+    #     "Mean_PLDDT"
+    # ].mean()
+
+    # print(avg_plddt_org)
+
+    # destress_data_uniprot.to_csv(
+    #     data_output_path + "pdb_destress_data_proteome_dist.csv", index=False
+    # )
+
     # 5. Selecting numeric features and filtering----------------------------------------
 
     destress_columns_full = destress_data_uniprot.columns.to_list()
@@ -609,6 +674,15 @@ for dataset in dataset_list:
     destress_data_num = destress_data_uniprot.select_dtypes([np.number]).reset_index(
         drop=True
     )
+
+    data_corr = stats.spearmanr(destress_data_num)
+    data_corr_df = pd.DataFrame(
+        data_corr[0],
+        columns=destress_data_num.columns.to_list(),
+        index=destress_data_num.columns.to_list(),
+    )
+
+    data_corr_df.to_csv("corr.csv")
 
     # Dropping composition metrics
     destress_data_num = destress_data_num[

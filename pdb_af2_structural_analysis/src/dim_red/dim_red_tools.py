@@ -28,7 +28,7 @@ def pca_var_explained(data, n_components, file_name, output_path):
     var_explained_sum = np.cumsum(var_explained)
 
     # Calculating list of components
-    components_list = range(0, n_components, 1)
+    components_list = range(1, n_components + 1, 1)
 
     # Creating dict
     var_explained_dict = {
@@ -46,7 +46,7 @@ def pca_var_explained(data, n_components, file_name, output_path):
         index=False,
     )
 
-    sns.set_theme(style="darkgrid")
+    sns.set_style("whitegrid")
 
     # Plotting the data and saving
     sns.lineplot(
@@ -54,9 +54,10 @@ def pca_var_explained(data, n_components, file_name, output_path):
         y="var_explained_sum",
         data=var_explained_df,
     )
-    plt.title("""Cumulative variance explained by number of principal components""")
-    plt.xlabel("Number of components")
-    plt.ylabel("Cumulative variance explained")
+    plt.xlabel("Number of components", fontsize=15)
+    plt.ylabel("Cumulative variance explained", fontsize=15)
+    plt.xticks(fontsize=15)
+    plt.yticks(fontsize=15)
     plt.savefig(output_path + file_name + ".png")
     plt.close()
 
@@ -138,14 +139,16 @@ def plot_latent_space_2d(
     y_id = str(int(y[-1]) + 1)
 
     x_var_explained = var_explained_data["var_explained"][
-        var_explained_data["n_components"] == 0
+        var_explained_data["n_components"] == 1
     ]
     y_var_explained = var_explained_data["var_explained"][
-        var_explained_data["n_components"] == 1
+        var_explained_data["n_components"] == 2
     ]
 
     x_var_explained_formatted = np.round(x_var_explained.iloc[0], 2) * 100
     y_var_explained_formatted = np.round(y_var_explained.iloc[0], 2) * 100
+
+    # plt.figure(figsize=(9, 6))
 
     # PCA 2d scatter plot
     plot = sns.scatterplot(
@@ -192,15 +195,15 @@ def plot_latent_space_2d(
     plt.legend(
         # [handles[idx] for idx in order],
         # [labels[idx] for idx in order],
-        # loc="lower center",
-        # bbox_to_anchor=(0.5, -0.4),
-        loc="upper left",
-        bbox_to_anchor=(1, 1),
+        loc="lower center",
+        bbox_to_anchor=(0.5, -0.4),
+        # loc="upper left",
+        # bbox_to_anchor=(1, 1),
         frameon=False,
-        fontsize=15,
-        # ncols=6,
+        fontsize=16,
+        ncols=6,
         title=legend_title,
-        title_fontsize=15,
+        title_fontsize=16,
     )
     # sns.move_legend(
     #     plot,
@@ -298,7 +301,7 @@ def spectral_plot(
         pca_data_long["organism_scientific_name"].isin(filt_list)
     ].reset_index(drop=True)
 
-    sns.set_style("ticks")
+    sns.set_style("whitegrid")
 
     # Plot the pca spectre for the different sequences
     plot = sns.lineplot(
@@ -308,8 +311,8 @@ def spectral_plot(
         # errorbar="sd",
         legend="full",
         data=pca_data_filt,
-        linewidth=4,
-        alpha=0.9,
+        linewidth=5,
+        alpha=0.7,
         palette=palette,
     )
     # ax.legend(
@@ -333,27 +336,27 @@ def spectral_plot(
         bbox_to_anchor=(0.5, -0.38),
         frameon=False,
         ncols=2,
-        fontsize=13,
+        fontsize=14,
         title=legend_title,
         markerscale=10,
     )
     for legobj in legend.legendHandles:
         legobj.set_linewidth(4)
-    plt.xlabel("PC ID", fontsize=14)
-    plt.ylabel("Average PC Value", fontsize=14)
+    plt.xlabel("PC ID", fontsize=16)
+    plt.ylabel("Average PC Value", fontsize=16)
     plt.title(title, fontsize=16)
 
     locs, labels = plt.xticks()
     plt.xticks(
         ticks=locs,
-        # labels=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
-        labels=[1, 2, 3, 4, 5, 6, 7, 8],
-        fontsize=14,
+        labels=[1, 2, 3, 4],
+        # labels=[1, 2, 3, 4],
+        fontsize=16,
     )
 
-    plt.yticks(fontsize=14)
-    # plt.ylim([-0.11, 0.11])
-    plt.ylim([-1, 1])
+    plt.yticks(fontsize=16)
+    plt.ylim([-0.8, 1.2])
+    # plt.ylim([-0.08, 0.12])
 
     plt.savefig(
         output_path + file_name + ".png",

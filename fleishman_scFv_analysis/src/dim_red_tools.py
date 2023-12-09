@@ -28,7 +28,7 @@ def pca_var_explained(data, n_components, file_name, output_path):
     var_explained_sum = np.cumsum(var_explained)
 
     # Calculating list of components
-    components_list = range(0, n_components, 1)
+    components_list = range(1, n_components + 1, 1)
 
     # Creating dict
     var_explained_dict = {
@@ -46,7 +46,7 @@ def pca_var_explained(data, n_components, file_name, output_path):
         index=False,
     )
 
-    sns.set_theme(style="darkgrid")
+    sns.set_style("whitegrid")
 
     # Plotting the data and saving
     sns.lineplot(
@@ -54,9 +54,11 @@ def pca_var_explained(data, n_components, file_name, output_path):
         y="var_explained_sum",
         data=var_explained_df,
     )
-    plt.title("""Cumulative variance explained by number of principal components""")
-    plt.xlabel("Number of components")
-    plt.ylabel("Cumulative variance explained")
+    # plt.title("""Cumulative variance explained by number of principal components""")
+    plt.xlabel("Number of components", fontsize=14)
+    plt.xticks(fontsize=14)
+    plt.yticks(fontsize=14)
+    plt.ylabel("Cumulative variance explained", fontsize=14)
     plt.savefig(output_path + file_name + ".png")
     plt.close()
 
@@ -140,10 +142,10 @@ def plot_latent_space_2d(
     y_id = str(int(y[-1]) + 1)
 
     x_var_explained = var_explained_data["var_explained"][
-        var_explained_data["n_components"] == 0
+        var_explained_data["n_components"] == 1
     ]
     y_var_explained = var_explained_data["var_explained"][
-        var_explained_data["n_components"] == 1
+        var_explained_data["n_components"] == 2
     ]
 
     x_var_explained_formatted = np.round(x_var_explained.iloc[0], 2) * 100
@@ -174,8 +176,8 @@ def plot_latent_space_2d(
     )
     plt.xticks(fontsize=18)
     plt.yticks(fontsize=18)
-    plt.xlim([-6, 11])
-    plt.ylim([-4, 8])
+    # plt.xlim([-6, 11])
+    # plt.ylim([-4, 8])
     # sns.move_legend(
     #     plot,
     #     "upper left",

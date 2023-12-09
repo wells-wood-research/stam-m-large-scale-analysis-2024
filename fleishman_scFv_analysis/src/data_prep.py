@@ -210,6 +210,11 @@ features_data, design_name_df = process_destress_data(
 )
 
 
+raw_features_data.to_csv(
+    processed_data_path + "fleishman_scfvs_destress_proteome_check.csv", index=False
+)
+
+
 raw_pdb_features_data["top_rank_flag"] = np.where(
     raw_pdb_features_data["design_name"].str.contains("rank_1"), 1, 0
 )

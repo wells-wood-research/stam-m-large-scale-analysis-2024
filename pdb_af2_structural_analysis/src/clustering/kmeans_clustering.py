@@ -211,10 +211,10 @@ for dataset in dataset_list:
         #     + group_label,
         #     fontsize=13,
         # )
-        plt.xlim([-1.5, 1.5])
-        plt.ylim([-1, 2])
-        plt.xticks(fontsize=16)
-        plt.yticks(fontsize=16)
+        # plt.xlim([-1.2, 1.2])
+        # plt.ylim([-1, 2])
+        plt.xticks(fontsize=15)
+        plt.yticks(fontsize=15)
         sns.move_legend(
             plot,
             loc="lower center",
@@ -307,76 +307,76 @@ for dataset in dataset_list:
                     ignore_index=True,
                 )
 
-            # Agglomerative clustering
+            # # Agglomerative clustering
 
-            for linkage in linkage_list:
-                # Setting up agglomerative clustering
-                model = AgglomerativeClustering(
-                    n_clusters=n_clusters,
-                    linkage=linkage,
-                    compute_distances=True,
-                )
-                model_fit = model.fit(processed_data_avg)
+            # for linkage in linkage_list:
+            #     # Setting up agglomerative clustering
+            #     model = AgglomerativeClustering(
+            #         n_clusters=n_clusters,
+            #         linkage=linkage,
+            #         compute_distances=True,
+            #     )
+            #     model_fit = model.fit(processed_data_avg)
 
-                # plt.figure(figsize=(9, 8))
-                # plot_dendrogram(
-                #     model_fit,
-                #     truncate_mode=None,
-                #     labels=organism_labels,
-                #     orientation="left",
-                #     leaf_font_size=8,
-                # )
-                # plt.xticks(fontsize=10)
-                # plt.savefig(
-                #     clustering_output_path
-                #     + "hierarchical_dendograms_nonredund/"
-                #     + "dendo_nclusters-"
-                #     + str(n_clusters)
-                #     + "_link-"
-                #     + linkage
-                #     + "_"
-                #     + group_label
-                #     + ".png",
-                #     bbox_inches="tight",
-                #     dpi=600,
-                # )
-                # plt.close()
+            #     plt.figure(figsize=(9, 8))
+            #     plot_dendrogram(
+            #         model_fit,
+            #         truncate_mode=None,
+            #         labels=organism_labels,
+            #         orientation="left",
+            #         leaf_font_size=8,
+            #     )
+            #     plt.xticks(fontsize=10)
+            #     plt.savefig(
+            #         clustering_output_path
+            #         + "hierarchical_dendograms_nonredund/"
+            #         + "dendo_nclusters-"
+            #         + str(n_clusters)
+            #         + "_link-"
+            #         + linkage
+            #         + "_"
+            #         + group_label
+            #         + ".png",
+            #         bbox_inches="tight",
+            #         dpi=600,
+            #     )
+            #     plt.close()
 
-                # Extracting the labels
-                predicted_labels = model_fit.labels_
+            #     # Extracting the labels
+            #     predicted_labels = model_fit.labels_
 
-                # Extracting the sum of squared distances of samples to
-                # their closest cluster centre
-                weighted_ssd = None
+            #     # Extracting the sum of squared distances of samples to
+            #     # their closest cluster centre
+            #     weighted_ssd = None
 
-                # Calculating the adjusted rand score against
-                # the organism labels
-                adj_rand_score = metrics.adjusted_rand_score(
-                    organism_group_labels,
-                    predicted_labels,
-                )
+            #     # Calculating the adjusted rand score against
+            #     # the organism labels
+            #     adj_rand_score = metrics.adjusted_rand_score(
+            #         organism_group_labels,
+            #         predicted_labels,
+            #     )
 
-                # Creating a row data frame
-                clustering_results = pd.DataFrame(
-                    {
-                        "model": "agglomerative",
-                        "dataset": dataset,
-                        "scaler": scaling_method,
-                        "kmeans_init": None,
-                        "linkage": linkage,
-                        "n_clusters": n_clusters,
-                        "weighted_ssd": weighted_ssd,
-                        "adj_rand_score": adj_rand_score,
-                    },
-                    index=[0],
-                )
+            #     # Creating a row data frame
+            #     clustering_results = pd.DataFrame(
+            #         {
+            #             "model": "agglomerative",
+            #             "dataset": dataset,
+            #             "scaler": scaling_method,
+            #             "kmeans_init": None,
+            #             "linkage": linkage,
+            #             "n_clusters": n_clusters,
+            #             "weighted_ssd": weighted_ssd,
+            #             "adj_rand_score": adj_rand_score,
+            #         },
+            #         index=[0],
+            #     )
 
-                # Adding the hyper parameters to the data set
-                clustering_results_master = pd.concat(
-                    [clustering_results_master, clustering_results],
-                    axis=0,
-                    ignore_index=True,
-                )
+            #     # Adding the hyper parameters to the data set
+            #     clustering_results_master = pd.concat(
+            #         [clustering_results_master, clustering_results],
+            #         axis=0,
+            #         ignore_index=True,
+            #     )
 
 clustering_results_master.to_csv(
     clustering_overall_results_path
