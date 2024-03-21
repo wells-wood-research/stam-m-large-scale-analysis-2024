@@ -63,7 +63,7 @@ for scaling_method in scaling_method_list:
         y_train_pred_var = y_train["expression_bin_label"]
         pdb_design_name_ids = pd.read_csv(pdb_design_name_ids_path)
         pdb_expression_label_df = pdb_design_name_ids
-        pdb_expression_label_df["expression_bin_label"] = "PDB"
+        pdb_expression_label_df["expression_bin_label"] = "SAbDab"
 
         print(pdb_expression_label_df)
 
@@ -176,7 +176,7 @@ for scaling_method in scaling_method_list:
                 axes_prefix="PC",
                 legend_title="",
                 hue="expression_bin_label",
-                hue_order=["Low", "Medium", "High", "PDB"],
+                hue_order=["Low", "Medium", "High", "SAbDab"],
                 # style=var,
                 alpha=0.7,
                 s=150,
@@ -188,7 +188,7 @@ for scaling_method in scaling_method_list:
             spectral_plot(
                 pca_data=pca_transformed_data,
                 group_var="expression_bin_label",
-                hue_order=["Low", "Medium", "High", "PDB"],
+                hue_order=["Low", "Medium", "High", "SAbDab"],
                 value_var_list=dim_ids_list,
                 title="",
                 legend_title="",
